@@ -64,7 +64,7 @@
 
 
 
-<div class="max-w-md mx-auto p-4 my-8">
+<div class="w-full min-h-screen mx-auto p-4 my-8">
 	{#if $user}
 		<h1 class="text-2xl font-bold mb-4">Добро пожаловать, {$user.email}!</h1>
 		<Button onclick={() => auth.signOut()}>Выйти</Button>

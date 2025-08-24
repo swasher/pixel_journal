@@ -6,7 +6,7 @@
     import { collection, query, where, onSnapshot, doc, deleteDoc, type DocumentData } from "firebase/firestore";
     import { Spinner } from "flowbite-svelte";
 
-    let { status } = $props<{ status: 'backlog' | 'completed' | 'rejected' | 'abandoned' }>();
+    let { status, onGamesUpdate } = $props<{ status: 'backlog' | 'completed' | 'rejected' | 'abandoned'; onGamesUpdate: (games: GameDataForToc[]) => void }>();
 
     interface GameData {
         id: string;
@@ -25,6 +25,11 @@
         markdown_content?: string;
         status: 'backlog' | 'completed' | 'rejected' | 'abandoned';
         date_added?: Date; // Добавляем date_added
+    }
+
+    interface GameDataForToc {
+        id: string;
+        title: string;
     }
 
     let games = $state<GameData[]>([]);
@@ -66,6 +71,9 @@
             games = fetchedGames;
             isLoading = false;
             error = null;
+
+            // Обновляем список игр для TOC
+            onGamesUpdate(fetchedGames.map(g => ({ id: g.id, title: g.title })));
         }, (e) => {
             console.error("Error fetching games: ", e);
             error = "Failed to load games.";
@@ -122,7 +130,9 @@
     {:else}
         <div class="grid grid-cols-1 gap-4">
             {#each games as game (game.id)}
-                <GameCard game={game} onEdit={handleEditGame} onDelete={() => handleDeleteGame(game.id, game.title)} />
+                <div id="game-{game.id}">
+                    <GameCard game={game} onEdit={handleEditGame} onDelete={() => handleDeleteGame(game.id, game.title)} />
+                </div>
             {/each}
         </div>
     {/if}

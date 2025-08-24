@@ -421,7 +421,7 @@ Use `class="max-w-[250px]` to create a custom size card.
 
 ## Component data
 
-The component has the following props, type, and default values. See [types page](/docs/pages/typescript) for type information.
+The component has the following props, type, and default values. See [types page](/LLM-docs/pages/typescript) for type information.
 
 <CompoAttributesViewer {dirName}/>
 
