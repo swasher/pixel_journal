@@ -1,105 +1,16 @@
 <script lang="ts">
-	import { auth } from "$lib/firebase";
-	import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, type User } from "firebase/auth";
-	import { userStore } from "$lib/stores/user";
-	import { Button, Label, Input, Spinner } from "flowbite-svelte";
-	import { goto } from "$app/navigation";
-
-	let email = $state('');
-	let password = $state('');
-	// let user: User | null = null;
-	let authMode:  'login' | 'register' = $state('login');
-	let errorMessage = $state('');
-	let isLoading = $state(false); // Состояние для индикатора загрузки
-
-	onAuthStateChanged(auth, (authUser) => {
-		userStore.set(authUser);
-	});
-
-	const user = $derived(userStore); // подписка на store в runes mode
-
-	async function register() {
-		isLoading = true;
-		errorMessage = '';
-		try {
-			await createUserWithEmailAndPassword(auth, email, password);
-			console.log("Регистрация успешна!");
-			goto('/backlog');
-		} catch (error: any) {
-			console.error("Ошибка регистрации:", error.message);
-			// Отображаем понятное сообщение об ошибке
-			if (error.code === 'auth/email-already-in-use') {
-				errorMessage = "Этот email уже зарегистрирован. Попробуйте войти.";
-			} else if (error.code === 'auth/weak-password') {
-				errorMessage = "Пароль слишком слабый. Минимум 6 символов.";
-			} else {
-				errorMessage = "Произошла ошибка при регистрации. Попробуйте еще раз.";
-			}
-		} finally {
-			isLoading = false;
-		}
-	}
-
-	async function login() {
-		isLoading = true;
-		errorMessage = '';
-		try {
-			await signInWithEmailAndPassword(auth, email, password);
-			console.log("Вход успешен!");
-			goto('/backlog');
-		} catch (error: any) {
-			console.error("Ошибка входа:", error.message);
-			// Отображаем понятное сообщение об ошибке
-			if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-				errorMessage = "Неверный email или пароль.";
-			} else {
-				errorMessage = "Произошла ошибка при входе. Попробуйте еще раз.";
-			}
-		} finally {
-			isLoading = false;
-		}
-	}
-
 </script>
 
-
-
-<div class="w-full min-h-screen mx-auto p-4 my-8">
-	{#if $user}
-		<h1 class="text-2xl font-bold mb-4">Добро пожаловать, {$user.email}!</h1>
-		<Button onclick={() => auth.signOut()}>Выйти</Button>
-	{:else}
-		<h1 class="text-2xl font-bold mb-4">{authMode === 'login' ? 'Вход в систему' : 'Регистрация'}</h1>
-
-		{#if errorMessage}
-			<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-				{errorMessage}
-			</div>
-		{/if}
-
-		<div class="space-y-4">
-			<div>
-				<Label for="email" class="mb-2">Email</Label>
-				<Input id="email" type="email" bind:value={email} placeholder="name@flowbite.com" required disabled={isLoading} />
-			</div>
-			<div>
-				<Label for="password" class="mb-2">Пароль</Label>
-				<Input id="password" type="password" bind:value={password} required disabled={isLoading} />
-			</div>
-
-			{#if isLoading}
-				<div class="flex justify-center">
-					<Spinner size="8" />
-				</div>
-			{:else if authMode === 'login'}
-				<Button onclick={login} type="button" class="w-full">Войти</Button>
-			{:else}
-				<Button onclick={register} class="w-full">Зарегистрироваться</Button>
-			{/if}
-
-			<button onclick={() => { authMode = authMode === 'login' ? 'register' : 'login'; errorMessage = ''; }} class="text-blue-500 hover:underline">
-				{authMode === 'login' ? 'Нужен аккаунт? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}
-			</button>
-		</div>
-	{/if}
+<div class="p-4">
+    <h1 class="text-3xl font-bold mb-4">Добро пожаловать на главную страницу Pixel Journal!</h1>
+    <p class="text-lg text-gray-700 dark:text-gray-300">
+        Это страница-заглушка. Здесь будет размещен интересный контент в будущем.
+    </p>
+    <p class="mt-4 text-gray-600 dark:text-gray-400">
+        Пока вы можете перейти в разделы:
+        <a href="/backlog" class="text-blue-500 hover:underline">Backlog</a>,
+        <a href="/completed" class="text-blue-500 hover:underline">Completed</a>,
+        <a href="/rejected" class="text-blue-500 hover:underline">Rejected</a> или
+        <a href="/abandoned" class="text-blue-500 hover:underline">Abandoned</a>.
+    </p>
 </div>

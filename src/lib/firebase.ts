@@ -1,7 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged, type User } from "firebase/auth";
+import { writable } from 'svelte/store';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -19,3 +20,11 @@ const app = initializeApp(firebaseConfig);
 // Экспортируем сервисы, которые вы будете использовать
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// Svelte store для пользователя
+export const user = writable<User | null>(null);
+
+// Подписываемся на изменения состояния аутентификации
+onAuthStateChanged(auth, (currentUser) => {
+    user.set(currentUser);
+});

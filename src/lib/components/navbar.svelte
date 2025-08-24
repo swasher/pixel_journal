@@ -5,23 +5,15 @@
 	import favicon from '$lib/assets/gamepad.ico';
 	import avatar from '$lib/assets/avatar.jpg';
 	import { DarkMode } from "flowbite-svelte";
-	import { onAuthStateChanged, signOut } from 'firebase/auth';
-	import { auth } from '$lib/firebase';
-	import { userStore } from '$lib/stores/user';
-	import { goto } from "$app/navigation";
+	import { signOut } from 'firebase/auth';
+	import { auth, user } from '$lib/firebase'; // Импортируем user store из firebase.ts
 
 	let activeUrl = $derived(page.url.pathname);
 
-	onAuthStateChanged(auth, (authUser) => {
-		userStore.set(authUser);
-	});
-
-	const user = $derived(userStore); // подписка на store в runes mode
+	const currentUser = $derived(user); // подписка на store в runes mode
 
 	async function handleSignOut() {
 		await signOut(auth);
-		userStore.set(null);
-		await goto('/');
 	}
 </script>
 
@@ -41,7 +33,7 @@
 	<Dropdown placement="bottom" triggeredBy="#avatar-menu">
 		<DropdownHeader>
 <!--			<span class="block text-sm">USER NAME</span>-->
-			<span class="block truncate text-sm font-medium">{$user.email}</span>
+			<span class="block truncate text-sm font-medium">{currentUser.email}</span>
 		</DropdownHeader>
 		<DropdownGroup>
 			<DropdownItem>Dashboard</DropdownItem>
