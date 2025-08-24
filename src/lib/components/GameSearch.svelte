@@ -16,7 +16,7 @@
 
 	interface GameDetailsResult {
 		developer?: string[];
-		publisher?: string;
+		publisher?: string[];
 		series?: string;
 	}
 
@@ -25,19 +25,29 @@
 	let searchResults = $state<GameSearchResult[]>([]);
 	let isLoading = $state(false);
 
-	// Подписываемся на allGames стор
-	// let $allGames = $state(allGames);
+	// Эффект для выполнения поиска с дебаунсингом (задержкой)
+	$effect(() => {
+		const query = searchQuery;
 
-	// Debounce function
-	function debounce<F extends (...args: any[]) => void>(func: F, delay: number) {
-		let timeoutId: NodeJS.Timeout;
-		return (...args: Parameters<F>): void => {
-			clearTimeout(timeoutId);
-			timeoutId = setTimeout(() => func(...args), delay);
-		};
-	}
+		// Если строка поиска пуста, очищаем результаты и выходим.
+		// Не запускаем таймер.
+		if (!query) {
+			searchResults = [];
+			return;
+		}
 
-	const debouncedSearch = debounce(async (query: string) => {
+		// Устанавливаем таймер для выполнения поиска через 500 мс.
+		const timeoutId = setTimeout(() => {
+			performSearch(query);
+		}, 500);
+
+		// Функция очистки: отменяет таймер, если searchQuery изменится снова
+		// до того, как таймер сработает, или когда компонент будет уничтожен.
+		return () => clearTimeout(timeoutId);
+	});
+
+	// Функция для выполнения поиска
+	async function performSearch(query: string) {
 		if (!query) {
 			searchResults = [];
 			isLoading = false;
@@ -45,7 +55,6 @@
 		}
 
 		isLoading = true;
-		// Не будем очищать результаты сразу, чтобы интерфейс не "прыгал"
 
 		try {
 			const response = await fetch(`/api/search-game?q=${encodeURIComponent(query)}`);
@@ -63,13 +72,7 @@
 		} finally {
 			isLoading = false;
 		}
-	}, 500);
-
-	// Reactive declaration to trigger debounced search on searchQuery change
-	$effect.pre(() => {
-		// Теперь эффект зависит от searchQuery и будет перезапускаться при его изменении
-		debouncedSearch(searchQuery);
-	});
+	}
 
 	async function handleAddGame(game: GameSearchResult) {
 		// Проверяем, есть ли игра уже в базе
@@ -102,7 +105,7 @@
 				image_url: game.image_url,
 				genres: game.genres || [],
 				developer: detailedGameData.developer || [],
-				publisher: detailedGameData.publisher || '',
+				publisher: detailedGameData.publisher || [],
 				series: detailedGameData.series || '',
 				user_note: '',
 				is_favorite: false,
@@ -135,19 +138,16 @@
 			<Spinner size=12 />
 		</div>
 	{:else if searchResults.length > 0}
-		<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4 overflow-y-auto flex-grow">
+		<div class="grid grid-cols-2 gap-4 p-4 overflow-y-auto flex-grow">
 			{#each searchResults as game (game.id)}
 				{@const isGameAdded = $allGames.some(g => g.rawgId === game.id)}
-				<Card img={game.image_url} onclick={isGameAdded ? undefined : () => handleAddGame(game)}
-							class="relative cursor-pointer hover:shadow-lg transition-shadow duration-200 {isGameAdded ? 'opacity-50 cursor-not-allowed' : ''}">
-					<Heading tag="h5" class="mb-2">{game.title}</Heading>
-					<p class="font-normal text-gray-700 dark:text-gray-400">{game.year || 'N/A'}</p>
-					{#if isGameAdded}
-						{@const addedGame = $allGames.find(g => g.rawgId === game.id)}
-						<div class="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 text-white text-lg font-bold rounded-lg">
-							Added to {addedGame?.status || 'your library'}
-						</div>
-					{/if}
+				<Card img={game.image_url} horizontal size="sm"
+						onclick={isGameAdded ? undefined : () => handleAddGame(game)}
+							class="relative cursor-pointer hover:shadow-lg transition-shadow duration-200 {isGameAdded ? 'opacity-30 cursor-not-allowed' : ''}">
+					<div class="p-2">
+						<Heading tag="h6" class="mb-2 text-lg   text-gray-900 dark:text-white">{game.title}</Heading>
+						<p class="mb-3 leading-tight font-normal text-gray-700 dark:text-gray-400">{game.year || 'N/A'}</p>
+					</div>
 				</Card>
 			{/each}
 		</div>

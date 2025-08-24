@@ -15,7 +15,7 @@
         year: number | null;
         image_url: string;
         developer?: string[];
-        publisher?: string;
+        publisher?: string[];
         genres?: string[];
         series?: string;
         user_note?: string;
@@ -50,9 +50,9 @@
                     title: data.title,
                     year: data.year,
                     image_url: data.image_url,
-                    developer: data.developer,
-                    publisher: data.publisher,
-                    genres: data.genres,
+                    developer: data.developer || [],
+                    publisher: data.publisher || [],
+                    genres: data.genres || [],
                     series: data.series,
                     user_note: data.user_note,
                     is_favorite: data.is_favorite,

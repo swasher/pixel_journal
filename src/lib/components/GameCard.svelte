@@ -1,5 +1,6 @@
 <script lang="ts">
     import { StarSolid, HeartSolid, EditSolid, CloseCircleSolid } from "flowbite-svelte-icons";
+    import { Card } from "flowbite-svelte"; // Импортируем Card
 
     interface GameData {
         id: string; // Changed to string to match Firestore doc.id
@@ -7,7 +8,7 @@
         year: number | null;
         image_url: string;
         developer?: string[];
-        publisher?: string;
+        publisher?: string[];
         genres?: string[];
         series?: string;
         user_note?: string;
@@ -39,21 +40,24 @@
     }
 </script>
 
-<div
-    class="relative flex bg-white border border-gray-200 rounded-lg shadow hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 w-full"
+<Card
+    img={game.image_url || 'https://via.placeholder.com/128x128?text=No+Image'}
+    horizontal
+    class="relative w-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
     onclick={onclick}
-    role="button"
-    tabindex="0"
 >
-    <img class="object-cover w-32 h-full rounded-s-lg" src={game.image_url || 'https://via.placeholder.com/128x128?text=No+Image'}
-         alt={game.title} />
     <div class="flex flex-col justify-between p-4 leading-normal flex-grow">
         <h5 class="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">{game.title} ({game.year || 'N/A'})</h5>
         {#if game.developer && game.developer.length > 0}
             <p class="font-normal text-gray-700 dark:text-gray-400">Developer: {game.developer.join(', ')}</p>
         {/if}
-        {#if game.publisher}
-            <p class="font-normal text-gray-700 dark:text-gray-400">Publisher: {game.publisher}</p>
+        {#if game.publisher && game.publisher.length > 0}
+            <p class="font-normal text-gray-700 dark:text-gray-400">Publisher: {(Array.isArray(game.publisher)
+                ? game.publisher
+                : (game.publisher === null || game.publisher === undefined)
+                    ? []
+                    : [String(game.publisher)]
+            ).join(', ')}</p>
         {/if}
         {#if game.genres && game.genres.length > 0}
             <p class="font-normal text-gray-700 dark:text-gray-400">Genres: {game.genres.join(', ')}</p>
@@ -94,4 +98,4 @@
             <CloseCircleSolid class="w-5 h-5 text-red-500 dark:text-red-400" />
         </button>
     </div>
-</div>
+</Card>

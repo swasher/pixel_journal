@@ -10,7 +10,7 @@
         year: number | null;
         image_url: string;
         developer?: string[];
-        publisher?: string;
+        publisher?: string[];
         genres?: string[];
         series?: string;
         user_note?: string;
@@ -30,11 +30,16 @@
 
     // Создаем производные строковые состояния для полей с массивами
     let developerString = $state(editedGame.developer?.join(', ') || '');
+    let publisherString = $state(editedGame.publisher?.join(', ') || ''); // Добавляем publisherString
     let genresString = $state(editedGame.genres?.join(', ') || '');
 
     // Эффекты для синхронизации строк обратно в массивы
     $effect(() => {
         editedGame.developer = developerString.split(',').map(s => s.trim()).filter(s => s);
+    });
+
+    $effect(() => {
+        editedGame.publisher = publisherString.split(',').map(s => s.trim()).filter(s => s); // Добавляем эффект для publisher
     });
 
     $effect(() => {
@@ -60,7 +65,7 @@
             if (editedGame.title !== undefined) updatedData.title = editedGame.title;
             if (editedGame.year !== undefined) updatedData.year = editedGame.year;
             updatedData.developer = editedGame.developer || []; // Ensure it's an array, not undefined/null
-            updatedData.publisher = editedGame.publisher || ''; // Ensure it's a string, not undefined/null
+            updatedData.publisher = editedGame.publisher || []; // Ensure it's an array, not undefined/null
             updatedData.genres = editedGame.genres || []; // Ensure it's an array, not undefined/null
             updatedData.series = editedGame.series || ''; // Ensure it's a string, not undefined/null
             updatedData.user_note = editedGame.user_note || ''; // Ensure it's a string, not undefined/null
@@ -95,8 +100,8 @@
                 <Input id="developer" type="text" bind:value={developerString} />
             </div>
             <div>
-                <Label for="publisher" class="mb-2">Publisher</Label>
-                <Input id="publisher" type="text" bind:value={editedGame.publisher} />
+                <Label for="publisher" class="mb-2">Publisher (comma-separated)</Label>
+                <Input id="publisher" type="text" bind:value={publisherString} />
             </div>
             <div>
                 <Label for="genres" class="mb-2">Genres (comma-separated)</Label>

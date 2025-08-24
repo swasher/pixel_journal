@@ -12,7 +12,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	}
 
 	try {
-		const response = await fetch(`${RAWG_API_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(searchQuery)}&search_precise=true&ordering=-rating&platforms=4`); // 4 = PC
+		const response = await fetch(`${RAWG_API_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(searchQuery)}&page_size=20&search_precise=true&platforms=4`); // 4 = PC
 
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => ({ message: 'Failed to fetch data from RAWG.io' }));

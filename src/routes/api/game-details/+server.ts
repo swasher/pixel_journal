@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
         const gameDetails = {
             developer: data.developers?.map((dev: any) => dev.name) || [],
-            publisher: data.publishers?.[0]?.name || '',
+            publisher: data.publishers?.map((pub: any) => pub.name) || [],
             series: data.series?.name || '',
         };
 
