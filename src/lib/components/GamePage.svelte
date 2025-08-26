@@ -29,7 +29,10 @@
 </aside>
 
 <!-- Основной контент. ml-72 нужен, чтобы контент не заезжал под сайдбар. -->
-<div class="ml-72 flex flex-col gap-4">
+<div class="ml-72">
+	<!-- Эта обертка центрирует контент и задает ему максимальную ширину в 896px (max-w-4xl) -->
+	<div class="w-full max-w-4xl mx-auto flex flex-col gap-4">
 		<GameSearch {status} />
 		<GameList {status} onGamesUpdate={handleGamesUpdate} />
+	</div>
 </div>
