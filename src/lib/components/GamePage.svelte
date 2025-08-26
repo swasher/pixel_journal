@@ -22,17 +22,14 @@
     }
 </script>
 
-<div class="flex min-h-screen">
-
 <!-- TOC в отдельной колонке -->
-<aside class="fixed top-[72px] left-0 w-3xl0 h-[calc(100vh-64px)] overflow-y-auto
- bg-white dark:bg-gray-900">
+<!-- Сайдбар позиционируется под навбаром (top-[64px]) и имеет фиксированную ширину w-72 -->
+<aside class="fixed top-[64px] left-0 w-72 h-[calc(100vh-64px)] overflow-y-auto overflow-x-hidden p-4 border-r border-gray-200 dark:border-gray-700">
 	<GameTocSidebar games={$gamesForToc} currentStatus={status} />
 </aside>
 
-<div class="flex-1 flex flex-col gap-4 p-4">
+<!-- Основной контент. ml-72 нужен, чтобы контент не заезжал под сайдбар. -->
+<div class="ml-72 flex flex-col gap-4">
 		<GameSearch {status} />
 		<GameList {status} onGamesUpdate={handleGamesUpdate} />
-</div>
-
 </div>
