@@ -42,8 +42,9 @@
 
 <Card
     img={game.image_url || 'https://via.placeholder.com/128x128?text=No+Image'}
+		imgClass="w-32 h-32 object-cover"
     horizontal
-    class="relative w-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+    class="relative w-full min-w-0 max-w-none cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
     onclick={onclick}
 >
     <div class="flex flex-col justify-between p-4 leading-normal flex-grow">

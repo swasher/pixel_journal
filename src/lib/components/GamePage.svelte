@@ -22,12 +22,17 @@
     }
 </script>
 
-<div class="flex flex-row-reverse min-h-screen">
-    <div class="w-64 flex-shrink-0 sticky top-0 h-screen overflow-y-auto p-4">
-        <GameTocSidebar games={$gamesForToc} currentStatus={status} />
-    </div>
-    <div class="flex-1 flex flex-col gap-4 p-4">
-        <GameSearch {status} />
-        <GameList {status} onGamesUpdate={handleGamesUpdate} />
-    </div>
+<div class="flex min-h-screen">
+
+<!-- TOC в отдельной колонке -->
+<aside class="fixed top-[72px] left-0 w-3xl0 h-[calc(100vh-64px)] overflow-y-auto
+ bg-white dark:bg-gray-900">
+	<GameTocSidebar games={$gamesForToc} currentStatus={status} />
+</aside>
+
+<div class="flex-1 flex flex-col gap-4 p-4">
+		<GameSearch {status} />
+		<GameList {status} onGamesUpdate={handleGamesUpdate} />
+</div>
+
 </div>

@@ -124,7 +124,7 @@
 
         <div class="mb-4">
             <Label for="user_note" class="mb-2">Your Note</Label>
-            <Textarea id="user_note" bind:value={editedGame.user_note} rows={4} />
+            <Textarea id="user_note" bind:value={editedGame.user_note} rows={4} cols={88}/>
         </div>
 
         <div class="flex items-center mb-4">

@@ -114,7 +114,7 @@
     }
 </script>
 
-<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-4 top-[72px]">
     {#if isLoading}
         <div class="flex justify-center items-center h-48">
             <Spinner size=12 />
@@ -128,12 +128,15 @@
             <p>No games in your {status} list yet. Add some!</p>
         </div>
     {:else}
-        <div class="grid grid-cols-1 gap-4">
-            {#each games as game (game.id)}
-                <div id="game-{game.id}">
-                    <GameCard game={game} onEdit={handleEditGame} onDelete={() => handleDeleteGame(game.id, game.title)} />
-                </div>
-            {/each}
+        <!-- Простая обертка для одной колонки с ограничением ширины и центрированием -->
+        <div class="w-full max-w-4xl mx-auto">
+            <div class="grid grid-cols-1 gap-4">
+                {#each games as game (game.id)}
+                    <div id="game-{game.id}">
+                        <GameCard game={game} onEdit={handleEditGame} onDelete={() => handleDeleteGame(game.id, game.title)} />
+                    </div>
+                {/each}
+            </div>
         </div>
     {/if}
 

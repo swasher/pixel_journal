@@ -9,7 +9,8 @@
 {#if $user}
 	<Navbar />
 
-	<main class="p-4">
+	<!-- pt-16 компенсирует высоту Navbar. ml-72 убран, т.к. боковая панель - часть конкретной страницы, а не всего layout. -->
+	<main class="p-4 pt-16">
 		<slot />
 	</main>
 

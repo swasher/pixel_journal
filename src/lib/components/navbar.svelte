@@ -1,6 +1,6 @@
 <script>
 	import { page } from "$app/state";
-	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Search, Avatar, Dropdown, DropdownHeader, DropdownGroup, DropdownItem } from "flowbite-svelte";
+	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Search, Avatar, Dropdown, DropdownHeader, DropdownGroup, DropdownItem, DropdownDivider } from "flowbite-svelte";
 	import { SearchOutline } from "flowbite-svelte-icons";
 	import favicon from '$lib/assets/gamepad.ico';
 	import avatar from '$lib/assets/avatar.jpg';
@@ -18,13 +18,28 @@
 </script>
 
 
-<Navbar class="bg-primary-100 dark:bg-secondary-900">
+<Navbar class="fixed z-50 bg-primary-100 dark:bg-secondary-900 py-0" fluid>
 
 	<NavBrand href="/">
 		<img src="{favicon}" class="me-3 h-6 sm:h-9" alt="Gamepad Logo" />
-		<span class="self-center text-xl font-semibold whitespace-nowrap dark:text-white">Pixel Journal</span>
+		<span class="self-center text-xl font-semibold whitespace-nowrap dark:text-amber-100">Pixel Journal</span>
 	</NavBrand>
 
+	<div class="flex md:order-2">
+		<div class="hidden md:block">
+			<Search size="sm" class="ms-auto" placeholder="Search..." />
+		</div>
+	</div>
+
+	<NavHamburger />
+	<NavUl {activeUrl}>
+		<!--<NavLi href="/">Home</NavLi>-->
+		<NavLi href="/backlog">Backlog</NavLi>
+		<NavLi href="/completed">Completed</NavLi>
+		<NavLi href="/rejected">Rejected</NavLi>
+		<NavLi href="/abandoned">Abandoned</NavLi>
+		<DarkMode size="md" />
+	</NavUl>
 
 	<div class="flex items-center md:order-3">
 		<Avatar id="avatar-menu" src={avatar} />
@@ -32,32 +47,16 @@
 
 	<Dropdown placement="bottom" triggeredBy="#avatar-menu">
 		<DropdownHeader>
-<!--			<span class="block text-sm">USER NAME</span>-->
-			<span class="block truncate text-sm font-medium">{currentUser.email}</span>
+			<!--			<span class="block text-sm">USER NAME</span>-->
+			<span class="block truncate text-sm font-medium">{$currentUser.email}</span>
 		</DropdownHeader>
 		<DropdownGroup>
 			<DropdownItem>Dashboard</DropdownItem>
 			<DropdownItem>Settings</DropdownItem>
 			<DropdownItem>Earnings</DropdownItem>
+			<DropdownDivider />
+			<DropdownItem onclick={handleSignOut}>Sign out</DropdownItem>
 		</DropdownGroup>
-		<DropdownItem onclick={handleSignOut}>Sign out</DropdownItem>
 	</Dropdown>
-
-
-	<div class="flex md:order-2">
-		<div class="hidden md:block">
-			<Search size="md" class="ms-auto" placeholder="Search..." />
-		</div>
-	</div>
-
-	<NavHamburger />
-	<NavUl {activeUrl}>
-		<NavLi href="/">Home</NavLi>
-		<NavLi href="/backlog">Backlog</NavLi>
-		<NavLi href="/completed">Completed</NavLi>
-		<NavLi href="/rejected">Rejected</NavLi>
-		<NavLi href="/abandoned">Abandoned</NavLi>
-		<DarkMode />
-	</NavUl>
 
 </Navbar>
