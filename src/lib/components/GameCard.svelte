@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { StarSolid, HeartSolid, EditSolid, CloseCircleSolid } from "flowbite-svelte-icons";
-    import { Card } from "flowbite-svelte"; // Импортируем Card
+    import { StarSolid, HeartSolid, CloseCircleSolid } from "flowbite-svelte-icons";
+    import { Card, Table, TableBody, TableBodyCell, TableBodyRow } from "flowbite-svelte";
 
     interface GameData {
         id: string; // Changed to string to match Firestore doc.id
@@ -20,17 +20,10 @@
         date_added?: Date; // Добавляем date_added
     }
 
-    let { game, onclick, onEdit, onDelete } = $props<{ game: GameData; onclick?: () => void; onEdit?: (game: GameData) => void; onDelete?: (gameId: string) => void }>();
+    let { game, onEdit, onDelete } = $props<{ game: GameData; onEdit?: (game: GameData) => void; onDelete?: (gameId: string) => void }>();
 
     // Форматируем дату для отображения
     const formattedDate = game.date_added ? new Date(game.date_added).toLocaleDateString() : 'N/A';
-
-    function handleEditClick(event: MouseEvent) {
-        event.stopPropagation(); // Предотвращаем срабатывание onclick на самой карточке
-        if (onEdit) {
-            onEdit(game);
-        }
-    }
 
     function handleDeleteClick(event: MouseEvent) {
         event.stopPropagation(); // Предотвращаем срабатывание onclick на самой карточке
@@ -45,41 +38,64 @@
 		imgClass="w-32 h-32 object-cover"
     horizontal
     class="relative w-full min-w-0 max-w-none cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-    onclick={onclick}
+    onclick={() => onEdit?.(game)}
 >
-    <div class="flex flex-col  p-4 leading-normal flex-grow">
+    <div class="flex flex-col p-4 leading-normal flex-grow">
         <h5 class="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">{game.title} ({game.year || 'N/A'})</h5>
-        {#if game.developer && game.developer.length > 0}
-            <p class="font-normal text-gray-700 dark:text-gray-400">Developer: {game.developer.join(', ')}</p>
-        {/if}
-        {#if game.publisher && game.publisher.length > 0}
-            <p class="font-normal text-gray-700 dark:text-gray-400">Publisher: {(Array.isArray(game.publisher)
+
+        <Table divClass="relative overflow-x-auto" class="text-sm">
+            <TableBody>
+                {#if game.developer && game.developer.length > 0}
+                    <TableBodyRow>
+                        <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Developer</TableBodyCell>
+                        <TableBodyCell class="py-1 px-4">{game.developer.join(', ')}</TableBodyCell>
+                    </TableBodyRow>
+                {/if}
+                {#if game.publisher && game.publisher.length > 0}
+                    <TableBodyRow>
+                        <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Publisher</TableBodyCell>
+                        <TableBodyCell class="py-1 px-4">{(Array.isArray(game.publisher)
                 ? game.publisher
                 : (game.publisher === null || game.publisher === undefined)
                     ? []
                     : [String(game.publisher)]
-            ).join(', ')}</p>
-        {/if}
-        {#if game.genres && game.genres.length > 0}
-            <p class="font-normal text-gray-700 dark:text-gray-400">Genres: {game.genres.join(', ')}</p>
-        {/if}
-        {#if game.series}
-            <p class="font-normal text-gray-700 dark:text-gray-400">Series: {game.series}</p>
-        {/if}
-        {#if game.play_time !== undefined}
-            <p class="font-normal text-gray-700 dark:text-gray-400">Play Time: {game.play_time} hours</p>
-        {/if}
-        {#if game.date_added}
-            <p class="font-normal text-gray-700 dark:text-gray-400">Added: {formattedDate}</p>
-        {/if}
+            ).join(', ')}</TableBodyCell>
+                    </TableBodyRow>
+                {/if}
+                {#if game.genres && game.genres.length > 0}
+                    <TableBodyRow>
+                        <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Genres</TableBodyCell>
+                        <TableBodyCell class="py-1 px-4">{game.genres.join(', ')}</TableBodyCell>
+                    </TableBodyRow>
+                {/if}
+                {#if game.series}
+                    <TableBodyRow>
+                        <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Series</TableBodyCell>
+                        <TableBodyCell class="py-1 px-4">{game.series}</TableBodyCell>
+                    </TableBodyRow>
+                {/if}
+                {#if game.play_time !== undefined && game.play_time !== null}
+                    <TableBodyRow>
+                        <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Play Time</TableBodyCell>
+                        <TableBodyCell class="py-1 px-4">{game.play_time} hours</TableBodyCell>
+                    </TableBodyRow>
+                {/if}
+                {#if game.date_added}
+                    <TableBodyRow>
+                        <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Added</TableBodyCell>
+                        <TableBodyCell class="py-1 px-4">{formattedDate}</TableBodyCell>
+                    </TableBodyRow>
+                {/if}
+            </TableBody>
+        </Table>
 
-        <div class="flex items-center mt-2">
+        <div class="flex items-center mt-4">
             {#if game.is_favorite}
-                <HeartSolid class="w-5 h-5 text-red-500 me-1" />
+                <HeartSolid class="w-5 h-5 text-red-500 me-2" />
             {/if}
             {#if game.user_rating && game.user_rating > 0}
                 <StarSolid class="w-5 h-5 text-yellow-400 me-1" />
-                <span class="text-gray-700 dark:text-gray-400">{game.user_rating}/5</span>
+                <span class="text-gray-700 dark:text-gray-400 font-semibold">{game.user_rating}/5</span>
             {/if}
         </div>
 
@@ -88,11 +104,6 @@
         {/if}
     </div>
     <div class="absolute top-2 right-2 flex gap-1">
-        <button class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500"
-                onclick={handleEditClick}
-                aria-label="Edit game">
-            <EditSolid class="w-5 h-5 text-gray-500 dark:text-gray-400" />
-        </button>
         <button class="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500"
                 onclick={handleDeleteClick}
                 aria-label="Delete game">
