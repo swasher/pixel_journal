@@ -1,3 +1,5 @@
+[![Netlify Status](https://api.netlify.com/api/v1/badges/b12f1fa8-cd9b-477d-9a5d-1bc26e9ef06f/deploy-status)](https://app.netlify.com/projects/pixel-journal/deploys)
+
 Pixel Journal
 ===================
 
