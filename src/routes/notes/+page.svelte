@@ -52,7 +52,7 @@
 	getArticle();
 </script>
 
-<div class="container mx-auto px-4 py-8">
+<div class="container mx-auto px-4 py-4">
 	{#if isLoading}
 		<p>Загрузка заметок...</p>
 	{:else if error}
@@ -61,9 +61,9 @@
 			<p>{error}</p>
 		</div>
 	{:else}
-		<article class="prose dark:prose-invert max-w-none">
+		<article class="prose dark:prose-invert max-w-prose mx-auto">
 			<div class="mb-6 flex w-full items-center justify-between border-b border-gray-700 pb-2">
-				<h1 class="text-4xl font-bold text-primary-600 dark:text-primary-400">
+				<h1 class="text-4xl font-bold text-primary-600 dark:text-secondary-600 m-0 !mb-0">
 					{article.head}
 				</h1>
 				<Button size="xs" color="alternative" class="p-1" onclick={() => isEditorOpen = true}>

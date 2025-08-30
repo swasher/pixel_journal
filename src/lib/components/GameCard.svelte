@@ -46,13 +46,13 @@
         <Table divClass="relative overflow-x-auto" class="text-sm">
             <TableBody>
                 {#if game.developer && game.developer.length > 0}
-                    <TableBodyRow>
+                    <TableBodyRow class="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600">
                         <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Developer</TableBodyCell>
                         <TableBodyCell class="py-1 px-4">{game.developer.join(', ')}</TableBodyCell>
                     </TableBodyRow>
                 {/if}
                 {#if game.publisher && game.publisher.length > 0}
-                    <TableBodyRow>
+                    <TableBodyRow class="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600">
                         <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Publisher</TableBodyCell>
                         <TableBodyCell class="py-1 px-4">{(Array.isArray(game.publisher)
                 ? game.publisher
@@ -63,25 +63,25 @@
                     </TableBodyRow>
                 {/if}
                 {#if game.genres && game.genres.length > 0}
-                    <TableBodyRow>
+                    <TableBodyRow class="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600">
                         <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Genres</TableBodyCell>
                         <TableBodyCell class="py-1 px-4">{game.genres.join(', ')}</TableBodyCell>
                     </TableBodyRow>
                 {/if}
                 {#if game.series}
-                    <TableBodyRow>
+                    <TableBodyRow class="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600">
                         <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Series</TableBodyCell>
                         <TableBodyCell class="py-1 px-4">{game.series}</TableBodyCell>
                     </TableBodyRow>
                 {/if}
                 {#if game.play_time !== undefined && game.play_time !== null}
-                    <TableBodyRow>
+                    <TableBodyRow class="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600">
                         <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Play Time</TableBodyCell>
                         <TableBodyCell class="py-1 px-4">{game.play_time} hours</TableBodyCell>
                     </TableBodyRow>
                 {/if}
                 {#if game.date_added}
-                    <TableBodyRow>
+                    <TableBodyRow class="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600">
                         <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Added</TableBodyCell>
                         <TableBodyCell class="py-1 px-4">{formattedDate}</TableBodyCell>
                     </TableBodyRow>

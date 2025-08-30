@@ -2,6 +2,11 @@
 
 @plugin 'flowbite/plugin';
 
+
+/* by swasher */
+@plugin '@tailwindcss/typography';
+
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -30,6 +35,9 @@
 
 @source "../node_modules/flowbite-svelte/dist";
 @source "../node_modules/flowbite-svelte-icons/dist";
+
+/* by swasher */
+@source "../src/**/*.{svelte,js,ts,html}"; /* Добавляем пути к твоим файлам */
 
 @layer base {
     /* disable chrome cancel button */

@@ -18,7 +18,8 @@
     Стили для темной темы применяются автоматически через app.css
     благодаря классу .dark на теге <html>
     -->
-	<div class="markdown-body">
+<!--	<div class="markdown-body">-->
+	<div class="prose dark:prose-invert">
 		{@html html}
 	</div>
 {:else}
