@@ -6,6 +6,7 @@
     import { collection, query, where, onSnapshot, doc, deleteDoc, type DocumentData } from "firebase/firestore";
     import { Spinner } from "flowbite-svelte";
     import { searchQuery } from "$lib/stores/searchQuery";
+	import { isGlobalSearch } from "$lib/stores/searchScope";
 
     let { status, onGamesUpdate } = $props<{ status: 'backlog' | 'completed' | 'rejected' | 'abandoned'; onGamesUpdate: (games: GameDataForToc[]) => void }>();
 
@@ -52,43 +53,54 @@
         onGamesUpdate(filteredGames.map(g => ({ id: g.id, title: g.title })));
     });
 
-    $effect(() => {
-        const q = query(collection(db, "games"), where("status", "==", status));
+    	$effect(() => {
+		// Этот эффект будет перезапускаться при изменении isGlobalSearch или searchQuery
+		const isGlobal = $isGlobalSearch;
+		const queryText = $searchQuery;
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const fetchedGames: GameData[] = [];
-            querySnapshot.forEach((doc) => {
-                const data = doc.data() as DocumentData;
-                fetchedGames.push({
-                    id: doc.id,
-                    rawg_id: data.rawg_id, // Извлекаем rawg_id
-                    title: data.title,
-                    year: data.year,
-                    image_url: data.image_url,
-                    developer: data.developer || [],
-                    publisher: data.publisher || [],
-                    genres: data.genres || [],
-                    series: data.series,
-                    user_note: data.user_note,
-                    is_favorite: data.is_favorite,
-                    user_rating: data.user_rating,
-                    play_time: data.play_time,
-                    markdown_content: data.markdown_content,
-                    status: data.status,
-                    date_added: data.date_added ? data.date_added.toDate() : undefined, // Преобразуем Timestamp в Date
-                });
-            });
-            games = fetchedGames;
-            isLoading = false;
-            error = null;
-        }, (e) => {
-            console.error("Error fetching games: ", e);
-            error = "Failed to load games.";
-            isLoading = false;
-        });
+		let q;
+		// Если включен глобальный поиск и есть текст в поиске, запрашиваем все игры.
+		// В противном случае - только игры из текущей категории.
+		if (isGlobal && queryText) {
+			q = query(collection(db, "games"));
+		} else {
+			q = query(collection(db, "games"), where("status", "==", status));
+		}
 
-        return () => unsubscribe();
-    });
+		const unsubscribe = onSnapshot(q, (querySnapshot) => {
+			const fetchedGames: GameData[] = [];
+			querySnapshot.forEach((doc) => {
+				const data = doc.data() as DocumentData;
+				fetchedGames.push({
+					id: doc.id,
+					rawg_id: data.rawg_id, // Извлекаем rawg_id
+					title: data.title,
+					year: data.year,
+					image_url: data.image_url,
+					developer: data.developer || [],
+					publisher: data.publisher || [],
+					genres: data.genres || [],
+					series: data.series,
+					user_note: data.user_note,
+					is_favorite: data.is_favorite,
+					user_rating: data.user_rating,
+					play_time: data.play_time,
+					markdown_content: data.markdown_content,
+					status: data.status,
+					date_added: data.date_added ? data.date_added.toDate() : undefined, // Преобразуем Timestamp в Date
+				});
+			});
+			games = fetchedGames;
+			isLoading = false;
+			error = null;
+		}, (e) => {
+			console.error("Error fetching games: ", e);
+			error = "Failed to load games.";
+			isLoading = false;
+		});
+
+		return () => unsubscribe();
+	});
 
     function handleEditGame(game: GameData) {
         editingGame = game;
