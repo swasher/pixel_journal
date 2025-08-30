@@ -35,7 +35,7 @@
 
 <Card
     img={game.image_url || 'https://via.placeholder.com/128x128?text=No+Image'}
-		imgClass="w-32 h-32 object-cover"
+		classes={{ image: "w-32 h-32 object-cover" }}
     horizontal
     class="relative w-full min-w-0 max-w-none cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
     onclick={() => onEdit?.(game)}
@@ -43,7 +43,7 @@
     <div class="flex flex-col p-4 leading-normal flex-grow">
         <h5 class="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">{game.title} ({game.year || 'N/A'})</h5>
 
-        <Table divClass="relative overflow-x-auto" class="text-sm">
+        <Table classes={{ div: "relative overflow-x-auto" }} class="text-sm">
             <TableBody>
                 {#if game.developer && game.developer.length > 0}
                     <TableBodyRow class="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600">
@@ -55,11 +55,11 @@
                     <TableBodyRow class="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600">
                         <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Publisher</TableBodyCell>
                         <TableBodyCell class="py-1 px-4">{(Array.isArray(game.publisher)
-                ? game.publisher
-                : (game.publisher === null || game.publisher === undefined)
-                    ? []
-                    : [String(game.publisher)]
-            ).join(', ')}</TableBodyCell>
+														? game.publisher
+														: (game.publisher === null || game.publisher === undefined)
+															? []
+															: [String(game.publisher)]
+												).join(', ')}</TableBodyCell>
                     </TableBodyRow>
                 {/if}
                 {#if game.genres && game.genres.length > 0}
@@ -74,7 +74,7 @@
                         <TableBodyCell class="py-1 px-4">{game.series}</TableBodyCell>
                     </TableBodyRow>
                 {/if}
-                {#if game.play_time !== undefined && game.play_time !== null}
+                {#if game.play_time !== undefined && game.play_time !== null  && game.play_time !== 0}
                     <TableBodyRow class="bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600">
                         <TableBodyCell class="font-semibold text-gray-900 dark:text-white py-1 px-4">Play Time</TableBodyCell>
                         <TableBodyCell class="py-1 px-4">{game.play_time} hours</TableBodyCell>

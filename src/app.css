@@ -5,7 +5,10 @@
 
 /* by swasher */
 @plugin '@tailwindcss/typography';
-
+@plugin 'tailwind-scrollbar' {
+    nocompatible: true;
+    preferredStrategy: 'pseudoelements';
+}
 
 @custom-variant dark (&:where(.dark, .dark *));
 

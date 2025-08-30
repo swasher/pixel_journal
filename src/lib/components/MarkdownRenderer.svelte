@@ -19,7 +19,12 @@
     благодаря классу .dark на теге <html>
     -->
 <!--	<div class="markdown-body">-->
-	<div class="prose dark:prose-invert">
+	<div class="prose dark:prose-invert
+scrollbar-thin
+
+  overflow-y-auto max-h-[76vh]">
+
+scrollbar-thumb-gray-700 dark:scrollbar-thumb-gray-400 scrollbar-track-gray-300 dark:scrollbar-track-gray-800 overflow-y-auto max-h-[80vh]">
 		{@html html}
 	</div>
 {:else}

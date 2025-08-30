@@ -14,7 +14,10 @@
 {:else if $user}
 	<!-- Пользователь определен и авторизован: показываем сайт -->
 	<Navbar />
-	<main class="p-4 pt-20">
+	<main class="p-4 pt-20
+		scrollbar-thumb-gray-700 dark:scrollbar-thumb-gray-400
+ 		scrollbar-track-gray-300 dark:scrollbar-track-gray-800
+	">
 		<slot />
 	</main>
 {:else}

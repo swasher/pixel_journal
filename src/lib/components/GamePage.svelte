@@ -22,11 +22,19 @@
     }
 </script>
 
-<!-- TOC в отдельной колонке -->
-<!-- Сайдбар позиционируется под навбаром (top-[64px]) и имеет фиксированную ширину w-72 -->
-<aside class="fixed top-[64px] left-0 w-72 h-[calc(100vh-64px)] overflow-y-auto overflow-x-hidden p-4 border-r border-gray-200 dark:border-gray-700">
-	<GameTocSidebar games={$gamesForToc} currentStatus={status} />
+
+<!--
+РАБОТАЛО С BAK
+<GameTocSidebar games={$gamesForToc} currentStatus={status} />
+-->
+
+
+<aside class="fixed top-20 w-80 h-[calc(100vh-5rem)] flex-shrink-0 overflow-y-auto  border-r p-1
+ scrollbar-thin
+">
+		<GameTocSidebar games={$gamesForToc} currentStatus={status} />
 </aside>
+
 
 <!-- Основной контент. ml-72 нужен, чтобы контент не заезжал под сайдбар. -->
 <div class="ml-72">
