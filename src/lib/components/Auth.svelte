@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { auth, user } from "$lib/firebase";
+	import { auth } from '$lib/firebase';
 	import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 	import { Button, Label, Input, Spinner, Card } from "flowbite-svelte"; // Импортируем Card
 
@@ -71,11 +71,11 @@
 	<form onsubmit={handleSubmit} class="space-y-4">
 		<div>
 			<Label for="email" class="mb-2">Email</Label>
-			<Input id="email" type="email" bind:value={email} placeholder="name@flowbite.com" required disabled={isLoading} />
+			<Input id="email" type="email" bind:value={email} placeholder="name@flowbite.com" required disabled={isLoading} autocomplete="email" />
 		</div>
 		<div>
 			<Label for="password" class="mb-2">Пароль</Label>
-			<Input id="password" type="password" bind:value={password} required disabled={isLoading} />
+			<Input id="password" type="password" bind:value={password} required disabled={isLoading} autocomplete="current-password" />
 		</div>
 
 		{#if isLoading}

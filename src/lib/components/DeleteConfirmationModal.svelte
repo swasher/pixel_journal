@@ -9,11 +9,8 @@
         message: string; 
     }>();
 
-    let isModalOpen = $state(open);
-
-    $effect(() => {
-        isModalOpen = open;
-    });
+    // let isModalOpen = $state(open);
+    let isModalOpen = $derived(open);
 
     function handleConfirm() {
         onConfirm();

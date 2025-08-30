@@ -5,6 +5,7 @@
     import { db } from "$lib/firebase";
     import { collection, query, where, onSnapshot, doc, deleteDoc, type DocumentData } from "firebase/firestore";
     import { Spinner } from "flowbite-svelte";
+    import { searchQuery } from "$lib/stores/searchQuery";
 
     let { status, onGamesUpdate } = $props<{ status: 'backlog' | 'completed' | 'rejected' | 'abandoned'; onGamesUpdate: (games: GameDataForToc[]) => void }>();
 
@@ -42,6 +43,15 @@
     let gameToDeleteId = $state<string | null>(null);
     let gameToDeleteTitle = $state<string | null>(null);
 
+    const filteredGames = $derived(games.filter(game => 
+        game.title.toLowerCase().includes($searchQuery.toLowerCase())
+    ));
+
+    $effect(() => {
+        // Обновляем список игр для TOC при изменении отфильтрованного списка
+        onGamesUpdate(filteredGames.map(g => ({ id: g.id, title: g.title })));
+    });
+
     $effect(() => {
         const q = query(collection(db, "games"), where("status", "==", status));
 
@@ -71,9 +81,6 @@
             games = fetchedGames;
             isLoading = false;
             error = null;
-
-            // Обновляем список игр для TOC
-            onGamesUpdate(fetchedGames.map(g => ({ id: g.id, title: g.title })));
         }, (e) => {
             console.error("Error fetching games: ", e);
             error = "Failed to load games.";
@@ -127,12 +134,16 @@
         <div class="text-center text-gray-500 dark:text-gray-400">
             <p>No games in your {status} list yet. Add some!</p>
         </div>
+    {:else if filteredGames.length === 0}
+        <div class="text-center text-gray-500 dark:text-gray-400">
+            <p>No games found matching your search.</p>
+        </div>
     {:else}
         <!-- Обертка для ограничения ширины и центрирования была перенесена в GamePage.svelte -->
         <div class="grid grid-cols-1 gap-4">
-            {#each games as game (game.id)}
+            {#each filteredGames as game (game.id)}
                 <div id="game-{game.id}">
-                    <GameCard game={game} onEdit={handleEditGame} onDelete={() => handleDeleteGame(game.id, game.title)} />
+                    <GameCard {game} onEdit={handleEditGame} onDelete={() => handleDeleteGame(game.id, game.title)} />
                 </div>
             {/each}
         </div>

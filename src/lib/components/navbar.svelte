@@ -7,6 +7,7 @@
 	import { DarkMode } from "flowbite-svelte";
 	import { signOut } from 'firebase/auth';
 	import { auth, user } from '$lib/firebase'; // Импортируем user store из firebase.ts
+	import { searchQuery } from '$lib/stores/searchQuery';
 
 	let activeUrl = $derived(page.url.pathname);
 
@@ -27,7 +28,7 @@
 
 	<div class="flex md:order-2">
 		<div class="hidden md:block">
-			<Search size="sm" class="ms-auto" placeholder="Search..." />
+			<Search size="sm" class="ms-auto" placeholder="Search..." bind:value={$searchQuery} />
 		</div>
 	</div>
 
@@ -38,6 +39,7 @@
 		<NavLi href="/completed">Completed</NavLi>
 		<NavLi href="/rejected">Rejected</NavLi>
 		<NavLi href="/abandoned">Abandoned</NavLi>
+		<NavLi href="/notes">Notes</NavLi>
 		<DarkMode size="md" />
 	</NavUl>
 

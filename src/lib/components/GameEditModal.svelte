@@ -84,7 +84,7 @@
     }
 </script>
 
-<Modal title="Edit Game: {game.title}" bind:open={isModalOpen} class="w-full max-w-2xl h-[90vh] flex flex-col">
+<Modal title="Edit Game: {game.title}" bind:open={isModalOpen} class="w-full max-w-2xl  flex flex-col">
 	<form onsubmit={handleSave} class="flex flex-col flex-grow p-4 overflow-y-auto">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>

@@ -47,7 +47,7 @@
     class="relative w-full min-w-0 max-w-none cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
     onclick={onclick}
 >
-    <div class="flex flex-col justify-between p-4 leading-normal flex-grow">
+    <div class="flex flex-col  p-4 leading-normal flex-grow">
         <h5 class="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">{game.title} ({game.year || 'N/A'})</h5>
         {#if game.developer && game.developer.length > 0}
             <p class="font-normal text-gray-700 dark:text-gray-400">Developer: {game.developer.join(', ')}</p>

@@ -1,22 +1,25 @@
 <script lang="ts">
 	import '../app.css';
-	import Footer from '$lib/components/footer.svelte';
 	import Navbar from '$lib/components/navbar.svelte';
 	import Auth from '$lib/components/Auth.svelte';
-	import { user } from '$lib/firebase'; // Импортируем user store
+	import { user } from '$lib/firebase'; // Импортируем только user
+	import { Spinner } from 'flowbite-svelte';
 </script>
 
-{#if $user}
+{#if $user === undefined}
+	<!-- Состояние неопределенности: показываем спиннер -->
+	<div class="flex h-screen w-full items-center justify-center bg-gray-900">
+		<Spinner size="12" color="pink" />
+	</div>
+{:else if $user}
+	<!-- Пользователь определен и авторизован: показываем сайт -->
 	<Navbar />
-
-	<!-- pt-16 компенсирует высоту Navbar. ml-72 убран, т.к. боковая панель - часть конкретной страницы, а не всего layout. -->
 	<main class="p-4 pt-20">
 		<slot />
 	</main>
-
-	<!--<Footer />-->
 {:else}
-	<div class="flex justify-center items-center min-h-screen">
+	<!-- Пользователь определен и не авторизован: показываем форму входа -->
+	<div class="flex min-h-screen items-center justify-center">
 		<Auth />
 	</div>
 {/if}

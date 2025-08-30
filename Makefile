@@ -1,4 +1,4 @@
-run_server:
+server:
 	npm run dev --
 
 tunnel:

@@ -22,9 +22,13 @@ export const db = getFirestore(app);
 export const auth = getAuth(app);
 
 // Svelte store для пользователя
-export const user = writable<User | null>(null);
+// Оборачиваем логику в writable store.
+// Код в `start` выполнится, когда у стора появится первый подписчик.
+export const user = writable<User | null | undefined>(undefined, (set) => {
+	const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+		set(currentUser);
+	});
 
-// Подписываемся на изменения состояния аутентификации
-onAuthStateChanged(auth, (currentUser) => {
-    user.set(currentUser);
+	// `stop` выполнится, когда последний подписчик отпишется.
+	return () => unsubscribe();
 });
