@@ -2,7 +2,6 @@
 	import { marked } from 'marked';
 	import DOMPurify from 'dompurify';
 	import { Button, Checkbox, Label } from 'flowbite-svelte';
-	import { toast } from 'svelte-sonner';
 
 	// --- PROPS ---
 	let { head = '', body = '', onSave, onCancel } = $props<{ 
@@ -32,61 +31,6 @@
 
 	function toggleTab() {
 		showPreview = !showPreview;
-	}
-
-	async function handlePaste(event: ClipboardEvent) {
-		const textarea = event.currentTarget as HTMLTextAreaElement;
-		if (!event.clipboardData || !textarea) return;
-
-		const items = event.clipboardData.items;
-		let imageFile: File | null = null;
-
-		for (const item of items) {
-			if (item.kind === 'file' && item.type.startsWith('image/')) {
-				imageFile = item.getAsFile();
-				break;
-			}
-		}
-
-		if (!imageFile) {
-			return; // Not an image, allow default paste
-		}
-
-		event.preventDefault(); // We have an image, so we handle it
-
-		const placeholder = `![Uploading image...]()`;
-		const cursorPosition = textarea.selectionStart;
-
-		// Insert placeholder at cursor
-		editedBody =
-			editedBody.slice(0, cursorPosition) + placeholder + editedBody.slice(textarea.selectionEnd);
-
-		const formData = new FormData();
-		formData.append('image', imageFile);
-
-		try {
-			const response = await fetch('/api/upload-image', {
-				method: 'POST',
-				body: formData
-			});
-
-			if (!response.ok) {
-				const errorResult = await response.json();
-				throw new Error(errorResult.message || 'Upload failed');
-			}
-
-			const result = await response.json();
-			const imageUrl = result.url;
-			const finalMarkdown = `![${imageFile.name}](${imageUrl})`;
-
-			// Replace placeholder with final markdown
-			editedBody = editedBody.replace(placeholder, finalMarkdown);
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-			toast.error(`Image upload failed: ${errorMessage}`);
-			// Replace placeholder with an error indicator
-			editedBody = editedBody.replace(placeholder, `![Image upload failed]()`);
-		}
 	}
 </script>
 
@@ -134,8 +78,7 @@
 				class="h-full w-full resize-none border-0 bg-gray-900 p-4 text-gray-200 outline-none focus:ring-0"
 				onkeydown={(e) => {
 					if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') toggleTab();
-				}}
-				onpaste={handlePaste}></textarea>
+				}}></textarea>
 		{:else}
 			<div class="prose dark:prose-invert h-full max-w-none p-4">
 				{@html rendered}
