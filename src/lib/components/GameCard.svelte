@@ -1,6 +1,6 @@
 <script lang="ts">
     import { StarSolid, HeartSolid, CloseCircleSolid } from "flowbite-svelte-icons";
-    import { Card, Table, TableBody, TableBodyCell, TableBodyRow } from "flowbite-svelte";
+    import { Card, Table, TableBody, TableBodyCell, TableBodyRow, Badge } from "flowbite-svelte";
 
     interface GameData {
         id: string; // Changed to string to match Firestore doc.id
@@ -18,6 +18,7 @@
         markdown_content?: string;
         status: 'backlog' | 'completed' | 'rejected' | 'abandoned';
         date_added?: Date; // Добавляем date_added
+        tags?: string[]; // Добавляем tags
     }
 
     let { game, onEdit } = $props<{ game: GameData; onEdit?: (game: GameData) => void; }>();
@@ -64,6 +65,18 @@
                     <TableBodyRow class={rowClass}>
                         <TableBodyCell class={headerCellClass}>Genres</TableBodyCell>
                         <TableBodyCell class={dataCellClass}>{game.genres.join(', ')}</TableBodyCell>
+                    </TableBodyRow>
+                {/if}
+                {#if game.tags && game.tags.length > 0}
+                    <TableBodyRow class={rowClass}>
+                        <TableBodyCell class={headerCellClass}>Tags</TableBodyCell>
+                        <TableBodyCell class={dataCellClass}>
+                            <div class="flex flex-wrap gap-1">
+                                {#each game.tags as tag (tag)}
+                                    <Badge color="indigo">{tag}</Badge>
+                                {/each}
+                            </div>
+                        </TableBodyCell>
                     </TableBodyRow>
                 {/if}
                 {#if game.series}

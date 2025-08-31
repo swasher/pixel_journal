@@ -28,6 +28,7 @@
         status: 'backlog' | 'completed' | 'rejected' | 'abandoned';
         date_added?: Date;
         userId?: string; // Добавляем userId в интерфейс
+        tags?: string[]; // Добавляем tags
     }
 
     interface GameDataForToc {
@@ -99,7 +100,8 @@
                     markdown_content: data.markdown_content,
                     status: data.status,
                     date_added: data.date_added ? data.date_added.toDate() : undefined,
-                    userId: data.userId
+                    userId: data.userId,
+                    tags: data.tags || [] // Добавляем tags
                 });
             });
             games = fetchedGames;
