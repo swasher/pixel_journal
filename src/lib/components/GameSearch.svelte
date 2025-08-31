@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { Heading, Button, Modal, Label, Input, Spinner, Card } from 'flowbite-svelte';
-	import { db } from '$lib/firebase';
+	import { db, auth } from '$lib/firebase'; // Импортируем auth
 	import { addDoc, collection } from 'firebase/firestore';
-	import { allGames } from '$lib/stores/allGames'; // Импортируем allGames стор
+	import { allGames } from '$lib/stores/allGames';
 
 	let { status } = $props<{ status: 'backlog' | 'completed' | 'rejected' | 'abandoned' }>();
 
@@ -28,21 +28,13 @@
 	// Эффект для выполнения поиска с дебаунсингом (задержкой)
 	$effect(() => {
 		const query = searchQuery;
-
-		// Если строка поиска пуста, очищаем результаты и выходим.
-		// Не запускаем таймер.
 		if (!query) {
 			searchResults = [];
 			return;
 		}
-
-		// Устанавливаем таймер для выполнения поиска через 500 мс.
 		const timeoutId = setTimeout(() => {
 			performSearch(query);
 		}, 500);
-
-		// Функция очистки: отменяет таймер, если searchQuery изменится снова
-		// до того, как таймер сработает, или когда компонент будет уничтожен.
 		return () => clearTimeout(timeoutId);
 	});
 
@@ -53,13 +45,10 @@
 			isLoading = false;
 			return;
 		}
-
 		isLoading = true;
-
 		try {
 			const response = await fetch(`/api/search-game?q=${encodeURIComponent(query)}`);
 			const data = await response.json();
-
 			if (response.ok) {
 				searchResults = data;
 			} else {
@@ -75,15 +64,20 @@
 	}
 
 	async function handleAddGame(game: GameSearchResult) {
-		// Проверяем, есть ли игра уже в базе
+        const user = auth.currentUser; // Получаем текущего пользователя напрямую
+
+        if (!user || !user.uid) {
+            alert("You must be logged in to add a game.");
+            return;
+        }
+
 		const existingGame = $allGames.find(g => g.rawgId === game.id);
 		if (existingGame) {
-			alert(`This game is already in your \'${existingGame.status}\' list.`);
+			alert(`This game is already in your '${existingGame.status}' list.`);
 			showModal = false;
 			return;
 		}
 
-		// Шаг 3: Запрашиваем детальную информацию перед добавлением
 		let detailedGameData: GameDetailsResult = {};
 		try {
 			const detailsResponse = await fetch(`/api/game-details?id=${game.id}`);
@@ -97,8 +91,9 @@
 		}
 
 		try {
-			await addDoc(collection(db, 'games'), {
-				rawg_id: game.id, // Сохраняем ID из RAWG для сопоставления
+			await addDoc(collection(db, 'Games'), { // Используем коллекцию "Games"
+                userId: user.uid, // Используем user.uid
+				rawg_id: game.id,
 				status: status,
 				title: game.title,
 				year: game.year,
@@ -121,9 +116,10 @@
 	}
 </script>
 
+
 <div class="flex justify-between items-center mb-4">
 	<Heading tag="h1" class="capitalize">{status}</Heading>
-	<Button onclick={() => showModal = true}>ADD</Button>
+	<Button onclick={() => showModal = true}>ADD GAME</Button>
 </div>
 
 <Modal title="Add a new game" bind:open={showModal} class="w-full max-w-4xl h-[80vh] flex flex-col">

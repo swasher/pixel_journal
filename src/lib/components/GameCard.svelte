@@ -20,7 +20,7 @@
         date_added?: Date; // Добавляем date_added
     }
 
-    let { game, onEdit, onDelete } = $props<{ game: GameData; onEdit?: (game: GameData) => void; onDelete?: (gameId: string) => void }>();
+    let { game, onEdit } = $props<{ game: GameData; onEdit?: (game: GameData) => void; }>();
 
     // Классы для стилизации таблицы для уменьшения дублирования в разметке
     const rowClass = "bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600";
@@ -29,13 +29,6 @@
 
     // Форматируем дату для отображения
     const formattedDate = game.date_added ? new Date(game.date_added).toLocaleDateString() : 'N/A';
-
-    function handleDeleteClick(event: MouseEvent) {
-        event.stopPropagation(); // Предотвращаем срабатывание onclick на самой карточке
-        if (onDelete) {
-            onDelete(game.id);
-        }
-    }
 </script>
 
 <Card
@@ -107,13 +100,6 @@
         {#if game.user_note}
             <p class="mt-3 text-sm italic text-gray-600 dark:text-gray-300">Note: {game.user_note}</p>
         {/if}
-    </div>
-    <div class="absolute top-2 right-2 flex gap-1">
-        <button class="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-300 dark:focus:ring-red-500"
-                onclick={handleDeleteClick}
-                aria-label="Delete game">
-            <CloseCircleSolid class="w-5 h-5 text-red-500 dark:text-red-400" />
-        </button>
     </div>
 </Card>
 

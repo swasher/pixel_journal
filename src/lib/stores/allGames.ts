@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
-import { db } from '../firebase';
-import { collection, onSnapshot, query, type DocumentData } from 'firebase/firestore';
+import { db, user } from '../firebase'; // Импортируем user store
+import { collection, onSnapshot, query, where, type DocumentData } from 'firebase/firestore';
+import type { Unsubscribe } from 'firebase/auth';
 
 interface CachedGameInfo {
     firestoreId: string; // ID документа в Firestore
@@ -13,26 +14,54 @@ export const allGames = writable<CachedGameInfo[]>([]);
 export const allGamesLoading = writable(true);
 export const allGamesError = writable<string | null>(null);
 
-// Подписываемся на изменения в коллекции 'games' один раз
-const unsubscribe = onSnapshot(query(collection(db, "games")), (querySnapshot) => {
-    const fetchedGames: CachedGameInfo[] = [];
-    querySnapshot.forEach((doc) => {
-        const data = doc.data() as DocumentData;
-        fetchedGames.push({
-            firestoreId: doc.id,
-            rawgId: data.rawg_id,
-            title: data.title,
-            status: data.status,
+let unsubscribeFromFirestore: Unsubscribe | null = null;
+
+// Подписываемся на изменения в состоянии пользователя
+const unsubscribeFromAuth = user.subscribe(currentUser => {
+    console.log('allGames store: User subscription triggered. currentUser:', currentUser);
+
+    // Если пользователь вышел, отписываемся от старых данных и очищаем store
+    if (unsubscribeFromFirestore) {
+        unsubscribeFromFirestore();
+        unsubscribeFromFirestore = null;
+        console.log('allGames store: Unsubscribed from previous Firestore listener.');
+    }
+
+    if (currentUser) {
+        console.log('allGames store: User is logged in. UID:', currentUser.uid);
+        allGamesLoading.set(true);
+        const q = query(
+            collection(db, "Games"), // Используем новую коллекцию "Games"
+            where("userId", "==", currentUser.uid) // Фильтруем по userId
+        );
+
+        unsubscribeFromFirestore = onSnapshot(q, (querySnapshot) => {
+            console.log('allGames store: Firestore snapshot received. Docs:', querySnapshot.docs.length);
+            const fetchedGames: CachedGameInfo[] = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data() as DocumentData;
+                fetchedGames.push({
+                    firestoreId: doc.id,
+                    rawgId: data.rawg_id,
+                    title: data.title,
+                    status: data.status,
+                });
+            });
+            allGames.set(fetchedGames);
+            allGamesLoading.set(false);
+            allGamesError.set(null);
+        }, (e) => {
+            console.error("allGames store: Error fetching all games: ", e);
+            allGamesError.set("Failed to load user's games.");
+            allGamesLoading.set(false);
         });
-    });
-    allGames.set(fetchedGames);
-    allGamesLoading.set(false);
-    allGamesError.set(null);
-}, (e) => {
-    console.error("Error fetching all games: ", e);
-    allGamesError.set("Failed to load all games.");
-    allGamesLoading.set(false);
+    } else {
+        // Если пользователя нет (он вышел), очищаем данные
+        console.log('allGames store: User is logged out or not yet initialized.');
+        allGames.set([]);
+        allGamesLoading.set(false);
+    }
 });
 
-// Экспортируем функцию для отписки, если потребуется
-export const unsubscribeAllGames = unsubscribe;
+// Экспортируем функцию для отписки от auth store, если потребуется
+export const unsubscribeFromAllGamesAuth = unsubscribeFromAuth;

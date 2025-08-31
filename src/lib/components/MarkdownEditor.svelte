@@ -17,13 +17,9 @@
 	let editedBody = $state(body);
 	let showPreview = $state(false);
 
-	// --- MARKED OPTIONS ---
-	let gfm = $state(true);
-	let breaks = $state(true);
-
 	// --- DERIVED PREVIEW ---
 	let rendered = $derived(
-		DOMPurify.sanitize(marked.parse(editedBody, { gfm, breaks }), { USE_PROFILES: { html: true } })
+		DOMPurify.sanitize(marked.parse(editedBody, { gfm: true, breaks: false }), { USE_PROFILES: { html: true } })
 	);
 
 	function handleSave() {
@@ -115,10 +111,7 @@
 			onclick={() => (showPreview = true)}>
 			Предпросмотр
 		</button>
-		<div class="flex items-center gap-2">
-			<Checkbox bind:checked={gfm}>GFM</Checkbox>
-			<Checkbox bind:checked={breaks}>Переносы</Checkbox>
-		</div>
+		
 		<div class="ml-auto flex items-center gap-2">
 			<Button size="xs" color="alternative" onclick={onCancel}>Отмена</Button>
 			<Button size="xs" color="blue" onclick={handleSave}>Сохранить</Button>

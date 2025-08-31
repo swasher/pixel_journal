@@ -1,6 +1,6 @@
 <script>
 	import { page } from "$app/state";
-	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Search, Avatar, Dropdown, DropdownHeader, DropdownGroup, DropdownItem, DropdownDivider } from "flowbite-svelte";
+	import { Navbar, NavBrand, NavLi, NavUl, NavHamburger, Search, Avatar, Dropdown, DropdownHeader, DropdownGroup, DropdownItem, DropdownDivider, Checkbox } from "flowbite-svelte";
 	import favicon from '$lib/assets/gamepad.ico';
 	// import avatar from '$lib/assets/avatar.jpg';
 	import avatar from '$lib/assets/dummy-avatar.png';
@@ -8,10 +8,22 @@
 	import { signOut } from 'firebase/auth';
 	import { auth, user } from '$lib/firebase'; // Импортируем user store из firebase.ts
 	import { searchQuery } from '$lib/stores/searchQuery';
-	import { isGlobalSearch } from '$lib/stores/searchScope'; // ВОЗВРАЩАЕМ isGlobalSearch
+	import { isGlobalSearch } from '$lib/stores/searchScope';
 
 	import { Button } from "flowbite-svelte";
 	import { SearchOutline, ChevronDownOutline } from "flowbite-svelte-icons";
+
+
+	const items = [
+		{
+			label: "All"
+		},
+		{
+			label: "Current"
+		}
+	];
+	let selectCategory = $state("All");
+
 
 	let activeUrl = $derived(page.url.pathname);
 
@@ -41,32 +53,35 @@
 			<DarkMode size="md" />
 		</NavUl>
 
-		<div class="">
-			<form class="flex items-center ms-auto">
-				<div class="relative">
-					<Button class="border-primary-700 rounded-e-none border border-e-0 whitespace-nowrap px-3 p-1.5">
-						{$isGlobalSearch ? 'All' : 'Current'} <!-- МЕНЯЕМ НА isGlobalSearch -->
-						<ChevronDownOutline class="ms-2.5 h-4 w-6" />
-					</Button>
-
-					<Dropdown simple class="text-sm">
-						<!-- МЕНЯЕМ ЛОГИКУ НА УПРАВЛЕНИЕ isGlobalSearch -->
-						<DropdownItem onclick={() => { $isGlobalSearch = true; }} class={!$isGlobalSearch ? "" : "underline"}>
-							All
-						</DropdownItem>
-						<DropdownItem onclick={() => { $isGlobalSearch = false; }} class={!$isGlobalSearch ? "underline" : ""}>
-							Current
-						</DropdownItem>
-					</Dropdown>
-				</div>
-
-				<Search size="sm" classes={{ input: "rounded-none py-2" }} placeholder="Search in your games..." bind:value={$searchQuery} />
-
-				<Button class="rounded-s-none p-2">
-					<SearchOutline  class="h-4 w-4" />
+<div class="">
+		<form class="flex items-center ms-auto">
+			<div class="relative">
+				<Button class="border-primary-700 rounded-e-none border border-e-0 whitespace-nowrap px-3 p-1.5">
+					{selectCategory}
+					<ChevronDownOutline class="ms-2.5 h-4 w-6" />
 				</Button>
-			</form>
-		</div>
+
+				<Dropdown  simple class="text-sm">
+					{#each items as { label } (label)}
+						<DropdownItem
+							onclick={() => {
+            selectCategory = label;
+          }}
+							class={selectCategory === label ? "underline" : ""}
+						>
+							{label}
+						</DropdownItem>
+					{/each}
+				</Dropdown>
+			</div>
+
+			<Search size="sm" classes={{ input: "rounded-none py-2" }} placeholder="Search in your games..." />
+
+			<Button class="rounded-s-none p-2">
+				<SearchOutline  class="h-4 w-4" />
+			</Button>
+		</form>
+</div>
 
 	</div>
 
@@ -88,35 +103,11 @@
 			<NavLi href="/rejected">Rejected</NavLi>
 			<NavLi href="/abandoned">Abandoned</NavLi>
 			<NavLi href="/notes">Notes</NavLi>
-			<div class="mt-2">
-				<form class="flex items-center w-full">
-					<div class="relative">
-						<Button class="border-primary-700 rounded-e-none border border-e-0 whitespace-nowrap px-3 p-1.5">
-							{$isGlobalSearch ? 'All' : 'Current'} <!-- МЕНЯЕМ НА isGlobalSearch -->
-							<ChevronDownOutline class="ms-2.5 h-4 w-6" />
-						</Button>
-
-						<Dropdown simple class="text-sm">
-							<!-- МЕНЯЕМ ЛОГИКУ НА УПРАВЛЕНИЕ isGlobalSearch -->
-							<DropdownItem onclick={() => { $isGlobalSearch = true; }} class={!$isGlobalSearch ? "" : "underline"}>
-								All
-							</DropdownItem>
-							<DropdownItem onclick={() => { $isGlobalSearch = false; }} class={!$isGlobalSearch ? "underline" : ""}>
-								Current
-							</DropdownItem>
-						</Dropdown>
-					</div>
-
-					<Search clearable size="sm" classes={{ input: "rounded-none py-2 w-full" }} placeholder="Search..." bind:value={$searchQuery} />
-
-					<Button class="rounded-s-none p-2">
-						<SearchOutline class="h-4 w-4" />
-					</Button>
-				</form>
+			<div class="mt-2 flex items-center space-x-2">
+				<Search size="sm" placeholder="Search..." bind:value={$searchQuery} />
+				<Checkbox bind:checked={$isGlobalSearch}>All</Checkbox>
 			</div>
-			<div class="mt-2">
-				<DarkMode size="md" />
-			</div>
+			<DarkMode size="md" />
 		</NavUl>
 	</div>
 
