@@ -132,8 +132,8 @@
 	bind:open={isModalOpen}
 	class="w-full max-w-2xl  flex flex-col"
 >
-	<form onsubmit={handleSave} class="flex flex-col flex-grow p-4 overflow-y-auto overflow-x-hidden">
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+	<form onsubmit={handleSave} class="flex flex-col flex-grow px-4 overflow-y-auto overflow-x-hidden">
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
 			<div>
 				<Label for="title" class="mb-2">Title</Label>
 				<Input id="title" size="sm" type="text" required bind:value={editedGame.title} />
@@ -181,7 +181,7 @@
 			</div>
 			<!-- Поле для тегов -->
 			<div class="md:col-span-2">
-				<Label for="game-tags" class="mb-2">Tags</Label>
+				<Label for="game-tags" class="mb-1">Tags</Label>
 				<Tags
 					id="game-tags"
 					bind:value={editedGame.tags}

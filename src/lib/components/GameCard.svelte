@@ -1,8 +1,10 @@
 <script lang="ts">
-    import { StarSolid, HeartSolid, CloseCircleSolid } from "flowbite-svelte-icons";
+    import { StarSolid, HeartSolid, StarHalfSolid, CloseCircleSolid } from "flowbite-svelte-icons";
     import { Card, Table, TableBody, TableBodyCell, TableBodyRow, Badge } from "flowbite-svelte";
+		import { Rating, Star, type RatingIconProps } from "flowbite-svelte";
 
-    interface GameData {
+
+		interface GameData {
         id: string; // Changed to string to match Firestore doc.id
         title: string;
         year: number | null;
@@ -105,9 +107,8 @@
                 <HeartSolid class="w-5 h-5 text-red-500 me-2" />
             {/if}
             {#if game.user_rating && game.user_rating > 0}
-                <StarSolid class="w-5 h-5 text-yellow-400 me-1" />
-                <span class="text-gray-700 dark:text-gray-400 font-semibold">{game.user_rating}/5</span>
-            {/if}
+  							<Rating id="example-1" total={5} size={25} rating={game.user_rating} />
+						{/if}
         </div>
 
         {#if game.user_note}

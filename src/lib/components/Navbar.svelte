@@ -12,6 +12,7 @@
 
 	import { Button } from "flowbite-svelte";
 	import { SearchOutline, ChevronDownOutline } from "flowbite-svelte-icons";
+	import { Toggle } from "flowbite-svelte";
 
 	let activeUrl = $derived(page.url.pathname);
 
@@ -41,32 +42,33 @@
 			<DarkMode size="md" />
 		</NavUl>
 
-		<div class="">
-			<form class="flex items-center ms-auto">
-				<div class="relative">
-					<Button class="border-primary-700 rounded-e-none border border-e-0 whitespace-nowrap px-3 p-1.5">
-						{$isGlobalSearch ? 'All' : 'Current'} <!-- МЕНЯЕМ НА isGlobalSearch -->
-						<ChevronDownOutline class="ms-2.5 h-4 w-6" />
-					</Button>
-
-					<Dropdown simple class="text-sm">
-						<!-- МЕНЯЕМ ЛОГИКУ НА УПРАВЛЕНИЕ isGlobalSearch -->
-						<DropdownItem onclick={() => { $isGlobalSearch = true; }} class={!$isGlobalSearch ? "" : "underline"}>
+		<!-- Поисковая строка с переключателем -->
+		<div class="flex items-center md:order-2 w-full md:w-auto">
+			<div class="relative w-full max-w-xs">
+				<Search
+					size="md"
+					placeholder="Поиск..."
+					classes={{ input: "rounded-lg pr-20 pl-10" }}
+					bind:value={$searchQuery}
+				>
+					<!-- Иконка поиска -->
+					<SearchOutline class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
+					<!-- Переключатель внутри поля ввода -->
+					<div class="absolute right-3 top-1/2 transform -translate-y-1/2 ">
+						<Toggle
+							size="small"
+							color="purple"
+							checked={$isGlobalSearch}
+							onchange={() => ($isGlobalSearch = !$isGlobalSearch)}
+						>
+							{#snippet offLabel()}Page{/snippet}
 							All
-						</DropdownItem>
-						<DropdownItem onclick={() => { $isGlobalSearch = false; }} class={!$isGlobalSearch ? "underline" : ""}>
-							Current
-						</DropdownItem>
-					</Dropdown>
-				</div>
-
-				<Search size="sm" classes={{ input: "rounded-none py-2" }} placeholder="Search in your games..." bind:value={$searchQuery} />
-
-				<Button class="rounded-s-none p-2">
-					<SearchOutline  class="h-4 w-4" />
-				</Button>
-			</form>
+						</Toggle>
+					</div>
+				</Search>
+			</div>
 		</div>
+
 
 	</div>
 
@@ -133,3 +135,11 @@
 	</Dropdown>
 
 </Navbar>
+
+<!--
+<style>
+    /* Уменьшаем размер переключателя для гармоничного встраивания */
+    :global(.toggle) {
+        transform: scale(0.8);
+    }
+</style>-->
