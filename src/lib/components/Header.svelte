@@ -43,7 +43,7 @@
 		</NavUl>
 
 		<!-- Поисковая строка с переключателем -->
-		<div class="flex items-center md:order-2 w-full md:w-auto">
+		<div class="flex items-center pl-10 md:order-2 w-full md:w-auto">
 			<div class="relative w-full max-w-xs">
 				<Search
 					size="md"
@@ -51,8 +51,6 @@
 					classes={{ input: "rounded-lg pr-20 pl-10" }}
 					bind:value={$searchQuery}
 				>
-					<!-- Иконка поиска -->
-					<SearchOutline class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
 					<!-- Переключатель внутри поля ввода -->
 					<div class="absolute right-3 top-1/2 transform -translate-y-1/2 ">
 						<Toggle
