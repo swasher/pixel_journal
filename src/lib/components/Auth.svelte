@@ -1,95 +1,46 @@
 <script lang="ts">
-	import { auth } from '$lib/firebase';
-	import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-	import { Button, Label, Input, Spinner, Card } from "flowbite-svelte"; // Импортируем Card
+    import { auth, googleProvider } from '$lib/firebase';
+    import { signInWithPopup } from 'firebase/auth';
+    import { Button } from 'flowbite-svelte';
+    import { GoogleSolid } from 'flowbite-svelte-icons';
 
-	let email = $state('');
-	let password = $state('');
-	let authMode:  'login' | 'register' = $state('login');
-	let errorMessage = $state('');
-	let isLoading = $state(false); // Состояние для индикатора загрузки
+    let error = $state<string | null>(null);
+    let isLoading = $state(false);
 
-	async function register() {
-		isLoading = true;
-		errorMessage = '';
-		try {
-			await createUserWithEmailAndPassword(auth, email, password);
-			console.log("Регистрация успешна!");
-		} catch (error: any) {
-			console.error("Ошибка регистрации:", error.message);
-			// Отображаем понятное сообщение об ошибке
-			if (error.code === 'auth/email-already-in-use') {
-				errorMessage = "Этот email уже зарегистрирован. Попробуйте войти.";
-			} else if (error.code === 'auth/weak-password') {
-				errorMessage = "Пароль слишком слабый. Минимум 6 символов.";
-			} else {
-				errorMessage = "Произошла ошибка при регистрации. Попробуйте еще раз.";
-			}
-		} finally {
-			isLoading = false;
-		}
-	}
-
-	async function login() {
-		isLoading = true;
-		errorMessage = '';
-		try {
-			await signInWithEmailAndPassword(auth, email, password);
-			console.log("Вход успешен!");
-		} catch (error: any) {
-			console.error("Ошибка входа:", error.message);
-			// Отображаем понятное сообщение об ошибке
-			if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-				errorMessage = "Неверный email или пароль.";
-			} else {
-				errorMessage = "Произошла ошибка при входе. Попробуйте еще раз.";
-			}
-		} finally {
-			isLoading = false;
-		}
-	}
-
-	function handleSubmit(event: Event) {
-		event.preventDefault();
-		if (authMode === 'login') {
-			login();
-		} else {
-			register();
-		}
-	}
+    async function signInWithGoogle() {
+        isLoading = true;
+        error = null;
+        try {
+            await signInWithPopup(auth, googleProvider);
+            // The onAuthStateChanged listener in firebase.ts will handle the user state update
+            // and the UI will reactively update.
+        } catch (e: any) {
+            error = e.message;
+            console.error("Google sign-in error:", e);
+        } finally {
+            isLoading = false;
+        }
+    }
 </script>
 
-<Card class="max-w-sm mx-auto p-6 my-8">
-	<h1 class="text-2xl font-bold mb-4 text-white">{authMode === 'login' ? 'Вход в систему' : 'Регистрация'}</h1>
+<div class="flex flex-col items-center justify-center p-4">
+    <h1 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Welcome to Pixel Journal</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">Sign in to manage your game library.</p>
+    
+    <Button 
+        onclick={signInWithGoogle} 
+        disabled={isLoading}
+        class="w-full max-w-xs"
+    >
+        <GoogleSolid class="w-5 h-5 me-2" />
+        {#if isLoading}
+            Signing in...
+        {:else}
+            Sign in with Google
+        {/if}
+    </Button>
 
-	{#if errorMessage}
-		<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-			{errorMessage}
-		</div>
-	{/if}
-
-	<form onsubmit={handleSubmit} class="space-y-4">
-		<div>
-			<Label for="email" class="mb-2">Email</Label>
-			<Input id="email" type="email" bind:value={email} placeholder="name@flowbite.com" required disabled={isLoading} autocomplete="email" />
-		</div>
-		<div>
-			<Label for="password" class="mb-2">Пароль</Label>
-			<Input id="password" type="password" bind:value={password} required disabled={isLoading} autocomplete="current-password" />
-		</div>
-
-		{#if isLoading}
-			<div class="flex justify-center">
-				<Spinner size="8" />
-			</div>
-		{:else}
-			<Button type="submit" class="w-full">
-				{authMode === 'login' ? 'Войти' : 'Зарегистрироваться'}
-			</Button>
-		{/if}
-
-		<button type="button" onclick={() => { authMode = authMode === 'login' ? 'register' : 'login'; errorMessage = ''; }} class="text-blue-500 hover:underline">
-			{authMode === 'login' ? 'Нужен аккаунт? Зарегистрироваться' : 'Уже есть аккаунт? Войти'}
-		</button>
-	</form>
-</Card>
+    {#if error}
+        <p class="mt-4 text-sm text-red-600 dark:text-red-500">{error}</p>
+    {/if}
+</div>
