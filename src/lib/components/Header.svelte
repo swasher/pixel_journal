@@ -7,6 +7,7 @@
 	import { DarkMode } from "flowbite-svelte";
 	import { signOut } from 'firebase/auth';
 	import { auth, user } from '$lib/firebase'; // Импортируем user store из firebase.ts
+    import { userSettings } from '$lib/stores/userSettings';
 	import { searchQuery } from '$lib/stores/searchQuery';
 	import { isGlobalSearch } from '$lib/stores/searchScope'; // ВОЗВРАЩАЕМ isGlobalSearch
 
@@ -36,11 +37,10 @@
 	<!-- Center Group: Menu and Search -->
 	<div class="flex-grow justify-center hidden md:flex items-center space-x-4">
 		<NavUl {activeUrl} classes={{ active: activeClass, nonActive: nonActiveClass }}>
-			<NavLi href="/backlog">Backlog</NavLi>
-			<NavLi href="/completed">Completed</NavLi>
-			<NavLi href="/rejected">Rejected</NavLi>
-			<NavLi href="/abandoned">Abandoned</NavLi>
-			<NavLi href="/notes">Notes</NavLi>
+            {#each $userSettings.categories as category}
+                <NavLi href="/{category}">{category}</NavLi>
+            {/each}
+            <NavLi href="/notes">Notes</NavLi>
 			<DarkMode size="md" />
 		</NavUl>
 
@@ -85,10 +85,9 @@
 	<!-- Mobile-only Menu -->
 	<div class="md:hidden">
 		<NavUl {activeUrl}  classes={{ active: activeClass, nonActive: nonActiveClass }}>
-			<NavLi href="/backlog">Backlog</NavLi>
-			<NavLi href="/completed">Completed</NavLi>
-			<NavLi href="/rejected">Rejected</NavLi>
-			<NavLi href="/abandoned">Abandoned</NavLi>
+            {#each $userSettings.categories as category}
+                <NavLi href="/{category}">{category}</NavLi>
+            {/each}
 			<NavLi href="/notes">Notes</NavLi>
 			<div class="mt-2">
 				<!-- Поисковая строка с переключателем -->
@@ -136,4 +135,3 @@
 	</Dropdown>
 
 </Navbar>
-

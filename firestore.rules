@@ -4,33 +4,24 @@ service cloud.firestore {
 
     // Games collection
     match /Games/{gameId} {
-      allow read, update, delete: if request.auth != null
-        && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.userId;
+      allow read, update, delete:
+        if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create:
+        if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
     // Notes collection
     match /Articles/{noteId} {
-      allow read, update, delete: if request.auth != null
-        && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.userId;
-    }
-
-    // Settings collection (один документ на пользователя)
-    match /Settings/{settingsId} {
-      allow read, update, delete: if request.auth != null
-        && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null
-        && request.auth.uid == request.resource.data.userId;
+      allow read, update, delete:
+        if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create:
+        if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
     // User-specific settings, document ID is the user's UID
     match /user_settings/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write:
+        if request.auth != null && request.auth.uid == userId;
     }
-  }
-}
   }
 }

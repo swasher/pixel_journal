@@ -29,5 +29,22 @@
 {#if games.length === 0}
 	<p class="p-2 text-gray-500 dark:text-gray-400 text-xs">No games to display.</p>
 {:else}
-	<Listgroup active items={listItems} class="!border-none" />
+<!--	<Listgroup active  items={listItems} class="!border-none" />-->
+	<ul class="space-y-1">
+		{#each listItems as item (item)}
+			<li>
+				<button
+					onclick={item.onclick}
+
+				class="block w-full text-left px-2 py-2 rounded-md cursor-pointer truncate text-sm font-medium
+				text-gray-700 hover:bg-gray-100 hover:text-primary-700
+				dark:text-secondary-400 dark:hover:bg-primary-300 dark:hover:text-primary-800
+"
+
+				>
+					{item.name}
+				</button>
+			</li>
+		{/each}
+	</ul>
 {/if}

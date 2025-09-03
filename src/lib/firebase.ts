@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth, onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore, collection, query, where, getDocs, writeBatch, deleteDoc } from "firebase/firestore";
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, deleteUser } from 'firebase/auth';
 import { writable } from 'svelte/store';
 
 // Your web app's Firebase configuration
@@ -25,7 +25,7 @@ export const googleProvider = new GoogleAuthProvider();
 // Svelte store для пользователя
 // Оборачиваем логику в writable store.
 // Код в `start` выполнится, когда у стора появится первый подписчик.
-export const user = writable<User | null | undefined>(undefined, (set) => {
+export const user = writable<any | null | undefined>(undefined, (set) => {
 	const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
 		set(currentUser);
 	});
@@ -33,3 +33,53 @@ export const user = writable<User | null | undefined>(undefined, (set) => {
 	// `stop` выполнится, когда последний подписчик отпишется.
 	return () => unsubscribe();
 });
+
+export async function updateGameStatuses(userId: string, oldStatus: string, newStatus: string) {
+  const q = query(
+    collection(db, "Games"),
+    where("userId", "==", userId),
+    where("status", "==", oldStatus)
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    console.log(`No games found for user ${userId} with status ${oldStatus}. Nothing to update.`);
+    return;
+  }
+
+  const docs = snapshot.docs;
+  for (let i = 0; i < docs.length; i += 500) {
+    const batch = writeBatch(db);
+    const chunk = docs.slice(i, i + 500);
+    chunk.forEach(doc => {
+      batch.update(doc.ref, { status: newStatus });
+    });
+    await batch.commit();
+  }
+
+  console.log(`Batch update complete: ${snapshot.size} games updated from '${oldStatus}' to '${newStatus}'.`);
+}
+
+export async function deleteUserGames(userId: string) {
+  console.log(`Starting deletion of all games for user: ${userId}`);
+  const q = query(collection(db, "Games"), where("userId", "==", userId));
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    console.log(`No games found for user ${userId}. Nothing to delete.`);
+    return;
+  }
+
+  const docs = snapshot.docs;
+  for (let i = 0; i < docs.length; i += 500) {
+    const batch = writeBatch(db);
+    const chunk = docs.slice(i, i + 500);
+    chunk.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+    console.log(`Deleted a batch of ${chunk.length} games.`);
+  }
+
+  console.log(`Batch delete complete: all ${snapshot.size} games for user ${userId} have been deleted.`);
+}

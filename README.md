@@ -3,7 +3,8 @@
 Pixel Journal
 ===================
 
-The game tracking project
+The game tracking project: [Link on Netlify](https://pixel-journal.netlify.app/).
+
 
 ![](.github/img1.png)
 
