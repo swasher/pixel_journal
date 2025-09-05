@@ -33,5 +33,5 @@ pnpm-debug.log*
 Thumbs.db
 
 # Другое
-LLM-docs/
+llm_docs
 mr_swasher.csv

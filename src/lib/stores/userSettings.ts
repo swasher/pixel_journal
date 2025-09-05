@@ -27,23 +27,37 @@ const createUserSettingsStore = () => {
             const userSettingsRef = doc(db, 'users', currentUser.uid);
 
             // One-time check to create settings if they don't exist.
-            getDoc(userSettingsRef).then(docSnap => {
+            getDoc(userSettingsRef).then(async (docSnap) => { // make this async
                 if (!docSnap.exists()) {
                     console.log(`First login for user ${currentUser.uid}. Creating default settings and note...`);
+                    
                     // Create user settings doc
                     setDoc(userSettingsRef, defaultSettings).catch(error => {
                         console.error("Failed to create default settings:", error);
                     });
-                    // Also create the initial "general" notes document
-                    const generalNoteRef = doc(db, 'users', currentUser.uid, 'articles', 'general');
-                    const defaultNote = {
-                        head: 'Мои заметки',
-                        body: 'Это место для ваших заметок. Нажмите кнопку редактирования, чтобы начать.',
-                        createdAt: new Date()
-                    };
-                    setDoc(generalNoteRef, defaultNote).catch(error => {
-                        console.error("Failed to create general note:", error);
-                    });
+
+                    try {
+                        // Fetch the default note content from the static file
+                        const response = await fetch('/default_note.md');
+                        if (!response.ok) {
+                            throw new Error(`Failed to fetch default note, status: ${response.status}`);
+                        }
+                        const noteBody = await response.text();
+
+                        // Create the initial "general" notes document
+                        const generalNoteRef = doc(db, 'users', currentUser.uid, 'articles', 'general');
+                        const defaultNote = {
+                            head: 'Общая заметка',
+                            body: noteBody,
+                            createdAt: new Date()
+                        };
+                        await setDoc(generalNoteRef, defaultNote);
+                        console.log("Successfully created general note from file.");
+
+                    } catch (error) {
+                        console.error("Failed to create general note from file:", error);
+                        // Optional: create a fallback note if fetch fails
+                    }
                 }
             }).catch(error => {
                 console.error("Error checking for user settings:", error);
