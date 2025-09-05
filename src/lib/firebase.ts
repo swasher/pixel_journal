@@ -35,9 +35,9 @@ export const user = writable<any | null | undefined>(undefined, (set) => {
 });
 
 export async function updateGameStatuses(userId: string, oldStatus: string, newStatus: string) {
+  const gamesRef = collection(db, 'users', userId, 'games');
   const q = query(
-    collection(db, "Games"),
-    where("userId", "==", userId),
+    gamesRef,
     where("status", "==", oldStatus)
   );
   const snapshot = await getDocs(q);
@@ -60,26 +60,4 @@ export async function updateGameStatuses(userId: string, oldStatus: string, newS
   console.log(`Batch update complete: ${snapshot.size} games updated from '${oldStatus}' to '${newStatus}'.`);
 }
 
-export async function deleteUserGames(userId: string) {
-  console.log(`Starting deletion of all games for user: ${userId}`);
-  const q = query(collection(db, "Games"), where("userId", "==", userId));
-  const snapshot = await getDocs(q);
 
-  if (snapshot.empty) {
-    console.log(`No games found for user ${userId}. Nothing to delete.`);
-    return;
-  }
-
-  const docs = snapshot.docs;
-  for (let i = 0; i < docs.length; i += 500) {
-    const batch = writeBatch(db);
-    const chunk = docs.slice(i, i + 500);
-    chunk.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-    await batch.commit();
-    console.log(`Deleted a batch of ${chunk.length} games.`);
-  }
-
-  console.log(`Batch delete complete: all ${snapshot.size} games for user ${userId} have been deleted.`);
-}

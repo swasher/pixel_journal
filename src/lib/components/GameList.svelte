@@ -27,7 +27,7 @@
         markdown_content?: string;
         status: 'backlog' | 'completed' | 'rejected' | 'abandoned';
         date_added?: Date;
-        userId?: string; // Добавляем userId в интерфейс
+        
         tags?: string[]; // Добавляем tags
     }
 
@@ -65,9 +65,10 @@
 
         console.log('GameList: User is logged in. UID:', $currentUser.uid);
         isLoading = true;
-        const queryConstraints: QueryConstraint[] = [
-            where("userId", "==", $currentUser.uid) // всегда фильтруем по userId
-        ];
+
+        const gamesCollectionRef = collection(db, 'users', $currentUser.uid, 'games');
+
+        const queryConstraints: QueryConstraint[] = [];
 
         const isGlobal = $isGlobalSearch;
         const queryText = $searchQuery;
@@ -76,7 +77,7 @@
             queryConstraints.push(where("status", "==", status));
         }
 
-        const q = query(collection(db, "Games"), ...queryConstraints);
+        const q = query(gamesCollectionRef, ...queryConstraints);
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             console.log('GameList: Firestore snapshot received. Docs:', querySnapshot.docs.length);
@@ -100,7 +101,7 @@
                     markdown_content: data.markdown_content,
                     status: data.status,
                     date_added: data.date_added ? data.date_added.toDate() : undefined,
-                    userId: data.userId,
+                    
                     tags: data.tags || [] // Добавляем tags
                 });
             });

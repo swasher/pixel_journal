@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { db, user } from '../firebase'; // Импортируем user store
-import { collection, onSnapshot, query, where, type DocumentData } from 'firebase/firestore';
+import { collection, onSnapshot, query, type DocumentData } from 'firebase/firestore';
 import type { Unsubscribe } from 'firebase/auth';
 
 interface CachedGameInfo {
@@ -30,10 +30,7 @@ const unsubscribeFromAuth = user.subscribe(currentUser => {
     if (currentUser) {
         console.log('allGames store: User is logged in. UID:', currentUser.uid);
         allGamesLoading.set(true);
-        const q = query(
-            collection(db, "Games"), // Используем новую коллекцию "Games"
-            where("userId", "==", currentUser.uid) // Фильтруем по userId
-        );
+        const q = query(collection(db, 'users', currentUser.uid, 'games'));
 
         unsubscribeFromFirestore = onSnapshot(q, (querySnapshot) => {
             console.log('allGames store: Firestore snapshot received. Docs:', querySnapshot.docs.length);

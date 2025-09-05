@@ -1,6 +1,6 @@
 <script lang="ts">
     import { Heading, Label, Tags, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P } from 'flowbite-svelte';
-    import { user, db, updateGameStatuses, deleteUserGames, auth } from '$lib/firebase';
+    import { user, db, updateGameStatuses, auth } from '$lib/firebase';
     import { userSettings } from '$lib/stores/userSettings';
     import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc, query, collection, where, getDocs, writeBatch } from 'firebase/firestore';
     import { deleteUser, GoogleAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
@@ -37,7 +37,7 @@
         }
         isLoading = true;
         try {
-            const userSettingsRef = doc(db, 'user_settings', $currentUser.uid);
+            const userSettingsRef = doc(db, 'users', $currentUser.uid);
             await setDoc(userSettingsRef, { tags: userTags }, { merge: true });
         } catch (error) {
             console.error("Error saving tags: ", error);
@@ -58,7 +58,7 @@
         const categoryToAdd = newCategory.trim();
         isLoading = true;
         try {
-            const userSettingsRef = doc(db, 'user_settings', $currentUser.uid);
+            const userSettingsRef = doc(db, 'users', $currentUser.uid);
             await updateDoc(userSettingsRef, { 
                 categories: arrayUnion(categoryToAdd)
             });
@@ -80,7 +80,7 @@
 
         isLoading = true;
         try {
-            const userSettingsRef = doc(db, 'user_settings', $currentUser.uid);
+            const userSettingsRef = doc(db, 'users', $currentUser.uid);
             await updateDoc(userSettingsRef, {
                 categories: arrayRemove(categoryToDelete)
             });
@@ -115,7 +115,7 @@
             await updateGameStatuses($currentUser.uid, categoryToRename, newName);
 
             const newCategories = $userSettings.categories.map(c => (c === categoryToRename ? newName : c));
-            const userSettingsRef = doc(db, 'user_settings', $currentUser.uid);
+            const userSettingsRef = doc(db, 'users', $currentUser.uid);
             await updateDoc(userSettingsRef, { categories: newCategories });
 
             isRenameModalOpen = false;
@@ -139,30 +139,37 @@
         deleteError = null;
         const userId = $currentUser.uid;
 
-        // The core cleanup logic
+        // The new cleanup logic for the nested structure
         const cleanupUserData = async () => {
             console.log(`Starting data cleanup for user: ${userId}`);
 
-            // 1. Delete all games
-            await deleteUserGames(userId);
+            // Helper function to delete all documents in a collection in batches
+            const deleteCollection = async (collRef: any) => {
+                const snapshot = await getDocs(collRef);
+                if (snapshot.empty) return 0;
 
-            // 2. Delete all notes (Articles)
-            console.log(`Starting deletion of all notes for user: ${userId}`);
-            const notesQuery = query(collection(db, "Articles"), where("userId", "==", userId));
-            const notesSnapshot = await getDocs(notesQuery);
-            if (!notesSnapshot.empty) {
-                const notesBatch = writeBatch(db);
-                notesSnapshot.forEach(doc => notesBatch.delete(doc.ref));
-                await notesBatch.commit();
-                console.log(`Deleted ${notesSnapshot.size} notes.`);
-            } else {
-                console.log('No notes found to delete.');
+                const docs = snapshot.docs;
+                for (let i = 0; i < docs.length; i += 500) {
+                    const batch = writeBatch(db);
+                    const chunk = docs.slice(i, i + 500);
+                    chunk.forEach(doc => batch.delete(doc.ref));
+                    await batch.commit();
+                }
+                return snapshot.size;
             }
 
+            // 1. Delete all games
+            const gamesDeleted = await deleteCollection(collection(db, 'users', userId, 'games'));
+            console.log(`Deleted ${gamesDeleted} games.`);
+
+            // 2. Delete all articles
+            const articlesDeleted = await deleteCollection(collection(db, 'users', userId, 'articles'));
+            console.log(`Deleted ${articlesDeleted} articles.`);
+            
             // 3. Delete user settings document
-            console.log(`Starting deletion of user settings for user: ${userId}`);
-            const userSettingsRef = doc(db, 'user_settings', userId);
-            await deleteDoc(userSettingsRef);
+            console.log(`Starting deletion of user document for user: ${userId}`);
+            const userDocRef = doc(db, 'users', userId);
+            await deleteDoc(userDocRef);
 
             console.log('User data cleanup complete.');
         };

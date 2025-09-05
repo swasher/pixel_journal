@@ -49,7 +49,7 @@
 	$effect(() => {
 		async function fetchUserTags() {
 			if (!$currentUser) return;
-			const userSettingsRef = doc(db, 'user_settings', $currentUser.uid);
+			const userSettingsRef = doc(db, 'users', $currentUser.uid);
 			const docSnap = await getDoc(userSettingsRef);
 			if (docSnap.exists()) {
 				availableTags = docSnap.data().tags || [];
@@ -82,8 +82,14 @@
 
 	async function handleSave(event: SubmitEvent) {
 		event.preventDefault(); // Теперь мы вызываем preventDefault здесь
+
+		if (!$currentUser) {
+			console.error("Cannot save game: User not logged in.");
+			return;
+		}
+
 		try {
-			const gameRef = doc(db, 'Games', editedGame.id);
+			const gameRef = doc(db, 'users', $currentUser.uid, 'games', editedGame.id);
 			const updatedData: Record<string, any> = {};
 
 			// Iterate over all possible fields and add them only if they are not undefined
@@ -116,8 +122,12 @@
 	}
 
 	async function confirmDelete() {
+		if (!$currentUser) {
+			console.error('Cannot delete game: User not logged in.');
+			return;
+		}
 		try {
-			await deleteDoc(doc(db, 'Games', game.id));
+			await deleteDoc(doc(db, 'users', $currentUser.uid, 'games', game.id));
 			console.log('Game deleted successfully!');
 			isDeleteModalOpen = false;
 			onClose(); // Закрываем и основное модальное окно

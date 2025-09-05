@@ -24,7 +24,7 @@ const createUserSettingsStore = () => {
         }
 
         if (currentUser) {
-            const userSettingsRef = doc(db, 'user_settings', currentUser.uid);
+            const userSettingsRef = doc(db, 'users', currentUser.uid);
 
             // One-time check to create settings if they don't exist.
             getDoc(userSettingsRef).then(docSnap => {

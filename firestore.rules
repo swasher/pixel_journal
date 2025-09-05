@@ -2,26 +2,24 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Games collection
-    match /Games/{gameId} {
-      allow read, update, delete:
-        if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create:
-        if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
+    // /users/{userId} - Document for a user, contains settings.
+    // /users/{userId}/games/{gameId} - Subcollection for user's games.
+    // /users/{userId}/articles/{noteId} - Subcollection for user's notes.
+    match /users/{userId} {
+      // A user can read and write to their own user document (which holds settings).
+      allow read, write: if request.auth != null && request.auth.uid == userId;
 
-    // Notes collection
-    match /Articles/{noteId} {
-      allow read, update, delete:
-        if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create:
-        if request.auth != null && request.auth.uid == request.resource.data.userId;
-    }
+      // Rules for the 'games' subcollection
+      match /games/{gameId} {
+        // A user can perform any operation on games within their own subcollection.
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
 
-    // User-specific settings, document ID is the user's UID
-    match /user_settings/{userId} {
-      allow read, write:
-        if request.auth != null && request.auth.uid == userId;
+      // Rules for the 'articles' subcollection
+      match /articles/{noteId} {
+        // A user can perform any operation on notes within their own subcollection.
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
   }
 }

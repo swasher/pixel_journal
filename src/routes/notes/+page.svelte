@@ -9,7 +9,6 @@
 		updateDoc,
 		collection,
 		query,
-		where,
 		addDoc
 	} from 'firebase/firestore';
 	import { Button, Modal } from 'flowbite-svelte';
@@ -28,11 +27,10 @@
 			const newArticleData = {
 				head: 'Мои заметки',
 				body: 'Это место для ваших заметок. Нажмите кнопку редактирования, чтобы начать.',
-				createdAt: new Date(),
-				userId: uid // Добавляем userId в соответствии с правилами безопасности
+				createdAt: new Date()
 			};
 			// Создаем новый документ с авто-сгенерированным ID
-			const docRef = await addDoc(collection(db, 'Articles'), newArticleData);
+			const docRef = await addDoc(collection(db, 'users', uid, 'articles'), newArticleData);
 			console.log(`Article created successfully with ID: ${docRef.id} for UID: ${uid}`);
 			
 			// Обновляем локальное состояние
@@ -49,8 +47,8 @@
 	async function getArticle(uid: string) {
 		console.log(`Attempting to query articles for UID: ${uid}`);
 		try {
-			const articlesRef = collection(db, 'Articles');
-			const q = query(articlesRef, where('userId', '==', uid));
+						tconst articlesRef = collection(db, 'users', uid, 'articles');
+			const q = query(articlesRef);
 			const querySnapshot = await getDocs(q);
 
 			if (!querySnapshot.empty) {
@@ -84,7 +82,7 @@
 		}
 		console.log(`Attempting to save article with ID: ${articleId}`);
 		try {
-			const docRef = doc(db, 'Articles', articleId); // Используем сохраненный ID документа
+			const docRef = doc(db, 'users', $currentUser.uid, 'articles', articleId); // Используем сохраненный ID документа
 			await updateDoc(docRef, {
 				head: data.head,
 				body: data.body

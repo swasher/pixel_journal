@@ -91,8 +91,7 @@
 		}
 
 		try {
-			await addDoc(collection(db, 'Games'), { // Используем коллекцию "Games"
-                userId: user.uid, // Используем user.uid
+			await addDoc(collection(db, 'users', user.uid, 'games'), {
 				rawg_id: game.id,
 				status: status,
 				title: game.title,
