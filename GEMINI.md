@@ -95,34 +95,60 @@
 
 ---
 
-### **Соглашения и особенности библиотек**
+### **Соглашения и особенности Svelte 5**
 
-Во избежание ошибок и для обеспечения единообразия кода, здесь задокументированы особенности используемых библиотек.
+В проекте используется Svelte 5. Это вносит важные изменения в синтаксис обработки событий, которые нужно строго соблюдать.
 
-1.  **Flowbite Svelte (`flowbite-svelte`)**
-    *   **Обработка событий клика на компоненте `Button`**: Вместо стандартной для Svelte директивы `on:click` необходимо использовать `prop` (свойство) `onclick`.
+#### **1. Устаревшая директива `on:` для DOM-событий**
 
-        *   **Правильно:**
-            ```svelte
-            <script>
-              import { Button } from 'flowbite-svelte';
-              function handleClick() {
-                console.log('Button clicked!');
-              }
-            </script>
+Использование директивы `on:событие` (например, `on:click`, `on:submit`) для нативных DOM-элементов (`<button>`, `<a>`, `<form>`) **устарело**. Вместо этого следует использовать атрибуты событий в нижнем регистре.
 
-            <Button onclick={handleClick}>Нажми меня</Button>
-            ```
+*   **Правильно (Svelte 5):**
+    ```svelte
+    <form onsubmit={handleSubmit}>
+        <button onclick={handleClick}>Нажми</button>
+    </form>
+    ```
+*   **Неправильно (устарело):**
+    ```svelte
+    <!-- Этот код вызовет предупреждение при сборке -->
+    <form on:submit={handleSubmit}>
+        <button on:click={handleClick}>Нажми</button>
+    </form>
+    ```
 
-        *   **Неправильно:**
-            ```svelte
-            <!-- Этот код не будет работать -->
-            <Button on:click={handleClick}>Нажми меня</Button>
-            ```
-    *   **Документация для LLM**: Справка по компонентам, оптимизированная для LLM, доступна по адресу `https://flowbite-svelte.com/llm/components/*.md`, где `*` — это название компонента в нижнем регистре. Например, для компонента `Table` документация находится по адресу `https://flowbite-svelte.com/llm/components/table.md`.
+#### **2. События компонентов и Callback Props**
 
-2.  **Svelte 5 (Runes Mode)**
-    *   В проекте используется Svelte 5 в режиме "runes mode". Все реактивное состояние должно объявляться с помощью рун (например, `$state()`), а пропсы — с помощью `$props()`. Реактивные объявления для побочных эффектов должны быть в блоках `$effect(() => { ... });`.
+Механизм `createEventDispatcher` из Svelte 4 **устарел**. Компоненты больше не "отправляют" события. Вместо этого они принимают функции обратного вызова (callback) как обычные `props`.
+
+*   **Правильно (Svelte 5):**
+    *   **Дочерний компонент (`Child.svelte`):**
+        ```svelte
+        <script>
+          let { onMyEvent } = $props(); // Принимаем функцию как prop
+        </script>
+        <button onclick={() => onMyEvent('данные события')}>Вызвать</button>
+        ```
+    *   **Родительский компонент:**
+        ```svelte
+        <Child onmyevent={(data) => console.log(data)} />
+        ```
+
+*   **Неправильно (устарело):**
+    *   **Дочерний компонент:**
+        ```svelte
+        // import { createEventDispatcher } from 'svelte';
+        // const dispatch = createEventDispatcher();
+        // dispatch('myEvent', 'данные события');
+        ```
+    *   **Родительский компонент:**
+        ```svelte
+        <Child on:myEvent={(event) => console.log(event.detail)} />
+        ```
+
+#### **3. Компоненты Flowbite-Svelte**
+
+Библиотека `flowbite-svelte` адаптирована под Svelte 5 и также следует этим правилам. Для обработки событий на ее компонентах (например, `<Button>`, `<Modal>`) нужно использовать `props` в нижнем регистре (`onclick`, `onclose` и т.д.), а не директиву `on:`.
 
 ---
 
@@ -199,4 +225,7 @@
             ```
 
 # Communication
-Для общения с Gemini и программистом следует использовать русский язык.
+
+- Для общения с Gemini и программистом следует использовать русский язык.
+
+- **Документация для LLM**: Справка по компонентам, оптимизированная для LLM, доступна по адресу `https://flowbite-svelte.com/llm/components/*.md`, где `*` — это название компонента в нижнем регистре. Например, для компонента `Table` документация находится по адресу `https://flowbite-svelte.com/llm/components/table.md`.

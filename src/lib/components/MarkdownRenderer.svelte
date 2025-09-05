@@ -12,19 +12,6 @@
 </script>
 
 {#if html}
-	<!--
-    Оборачиваем в div с классом `markdown-body`.
-    Стили для темной темы применяются автоматически через app.css
-    благодаря классу .dark на теге <html>
-    -->
-		<!--	<div class="markdown-body">-->
-
-
-	<!-- ПРИМЕНЕНИЕ СТИЛЕЙ TAILWIND TIPOGRAPHY	-->
-<!--	<div class="prose dark:prose-invert scrollbar-thin overflow-y-auto max-h-[77vh]">-->
-<!--		{@html html}-->
-<!--	</div>-->
-
 	<!-- ПРИМЕНЕНИЕ СТИЛЕЙ GITHUB -->
 	<div class="markdown-body dark:markdown-body-dark scrollbar-thin overflow-y-auto max-h-[77vh] p-3">
 		{@html html}

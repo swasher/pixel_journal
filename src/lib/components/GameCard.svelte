@@ -42,7 +42,11 @@
     onclick={() => onEdit?.(game)}
 >
     <div class="flex flex-col p-4 leading-normal flex-grow">
-        <h5 class="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">{game.title} ({game.year || 'N/A'})</h5>
+        <h5 class="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">{game.title} ({game.year || 'N/A'})
+			<a href="/notes/{game.id}" onclick={(e) => e.stopPropagation()} class="ms-2 text-sm font-medium text-primary-600 hover:underline dark:text-primary-500">
+				(Заметка)
+			</a>
+		</h5>
 
         <Table classes={{ div: "relative overflow-x-auto" }} class="text-sm">
             <TableBody>

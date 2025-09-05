@@ -1,32 +1,26 @@
 <script lang="ts">
     import { Modal, Button } from 'flowbite-svelte';
     import { ExclamationCircleOutline } from 'flowbite-svelte-icons';
-    import { createEventDispatcher } from 'svelte';
 
-    let { open, message, class: className = '' } = $props<{ 
+    type Props = { 
         open: boolean; 
         message: string; 
         class?: string;
-    }>();
+        onconfirm: () => void;
+        oncancel: () => void;
+    };
 
-    const dispatch = createEventDispatcher<{ confirm: void; cancel: void }>();
+    let { open, message, class: className = '', onconfirm, oncancel } = $props<Props>();
 
-    function handleConfirm() {
-        dispatch('confirm');
-    }
-
-    function handleCancel() {
-        dispatch('cancel');
-    }
 </script>
 
-<Modal bind:open={open} size="sm" autoclose={false} popup class={className}>
+<Modal bind:open={open} size="sm" autoclose={false} popup class={className} onclose={oncancel}>
     <div class="text-center">
         <ExclamationCircleOutline class="mx-auto mb-4 h-12 w-12 text-gray-400 dark:text-gray-200" />
         <h3 class="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
             {message}
         </h3>
-        <Button color="red" class="me-2" onclick={handleConfirm}>Yes, I'm sure</Button>
-        <Button color="alternative" onclick={handleCancel}>No, cancel</Button>
+        <Button color="red" class="me-2" onclick={onconfirm}>Yes, I'm sure</Button>
+        <Button color="alternative" onclick={oncancel}>No, cancel</Button>
     </div>
 </Modal>

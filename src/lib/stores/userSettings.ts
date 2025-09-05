@@ -29,9 +29,20 @@ const createUserSettingsStore = () => {
             // One-time check to create settings if they don't exist.
             getDoc(userSettingsRef).then(docSnap => {
                 if (!docSnap.exists()) {
-                    console.log(`First login for user ${currentUser.uid}. Creating default settings...`);
+                    console.log(`First login for user ${currentUser.uid}. Creating default settings and note...`);
+                    // Create user settings doc
                     setDoc(userSettingsRef, defaultSettings).catch(error => {
                         console.error("Failed to create default settings:", error);
+                    });
+                    // Also create the initial "general" notes document
+                    const generalNoteRef = doc(db, 'users', currentUser.uid, 'articles', 'general');
+                    const defaultNote = {
+                        head: 'Мои заметки',
+                        body: 'Это место для ваших заметок. Нажмите кнопку редактирования, чтобы начать.',
+                        createdAt: new Date()
+                    };
+                    setDoc(generalNoteRef, defaultNote).catch(error => {
+                        console.error("Failed to create general note:", error);
                     });
                 }
             }).catch(error => {

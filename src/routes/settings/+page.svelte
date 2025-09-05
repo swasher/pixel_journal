@@ -98,8 +98,7 @@
         isRenameModalOpen = true;
     }
 
-    async function handleRename(event: CustomEvent<string>) {
-        const newName = event.detail;
+    async function handleRename(newName: string) {
         if (!categoryToRename || !$currentUser || !newName || newName === categoryToRename) {
             isRenameModalOpen = false;
             return;
@@ -303,8 +302,8 @@
     <DeleteConfirmationModal
         open={isDeleteModalOpen}
         message={`Are you sure you want to delete the category \"${categoryToDelete}\"? This action cannot be undone.`}
-        on:confirm={confirmDelete}
-        on:cancel={() => isDeleteModalOpen = false}
+        onconfirm={confirmDelete}
+        oncancel={() => isDeleteModalOpen = false}
     />
 {/if}
 
@@ -312,8 +311,8 @@
     <RenameModal 
         open={isRenameModalOpen} 
         currentName={categoryToRename}
-        on:save={handleRename}
-        on:cancel={() => isRenameModalOpen = false}
+        onsave={handleRename}
+        oncancel={() => isRenameModalOpen = false}
     />
 {/if}
 
@@ -323,7 +322,7 @@
         heading="Are you absolutely sure?"
         message="This will permanently delete your account and all of its data, including every game, category, and tag you have created. This action cannot be undone."
         confirmationText="DELETE"
-        on:confirm={handleDeleteAccount}
-        on:cancel={() => isDeleteAccountModalOpen = false}
+        onconfirm={handleDeleteAccount}
+        oncancel={() => isDeleteAccountModalOpen = false}
     />
 {/if}

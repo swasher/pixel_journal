@@ -1,93 +1,58 @@
 <script lang="ts">
 	import MarkdownRenderer from '$lib/components/MarkdownRenderer.svelte';
 	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
-	import { db, user } from '$lib/firebase'; // Импортируем user store
-	import {
-		doc,
-		getDocs,
-		setDoc,
-		updateDoc,
-		collection,
-		query,
-		addDoc
-	} from 'firebase/firestore';
+	import { db, user } from '$lib/firebase';
+	import { doc, getDoc, updateDoc } from 'firebase/firestore';
 	import { Button, Modal } from 'flowbite-svelte';
 	import { EditSolid } from 'flowbite-svelte-icons';
 
+	const GENERAL_NOTE_ID = 'general';
+
 	let article = $state({ head: '', body: '' });
-	let articleId = $state<string | null>(null); // Сохраняем ID найденного или созданного документа
 	let isLoading = $state(true);
 	let error = $state('');
 	let isEditorOpen = $state(false);
 	let currentUser = $derived(user);
 
-	async function createArticle(uid: string) {
-		console.log(`Attempting to create article for UID: ${uid}`);
+	async function getGeneralNote(uid: string) {
+		isLoading = true;
+		error = '';
+		console.log(`Attempting to get general note for UID: ${uid}`);
 		try {
-			const newArticleData = {
-				head: 'Мои заметки',
-				body: 'Это место для ваших заметок. Нажмите кнопку редактирования, чтобы начать.',
-				createdAt: new Date()
-			};
-			// Создаем новый документ с авто-сгенерированным ID
-			const docRef = await addDoc(collection(db, 'users', uid, 'articles'), newArticleData);
-			console.log(`Article created successfully with ID: ${docRef.id} for UID: ${uid}`);
-			
-			// Обновляем локальное состояние
-			articleId = docRef.id;
-			article.head = newArticleData.head;
-			article.body = newArticleData.body;
+			const noteRef = doc(db, 'users', uid, 'articles', GENERAL_NOTE_ID);
+			const docSnap = await getDoc(noteRef);
 
-		} catch (e: any) {
-			console.error('Error creating article:', e);
-			error = 'Не удалось создать документ для заметок: ' + e.message;
-		}
-	}
-
-	async function getArticle(uid: string) {
-		console.log(`Attempting to query articles for UID: ${uid}`);
-		try {
-						tconst articlesRef = collection(db, 'users', uid, 'articles');
-			const q = query(articlesRef);
-			const querySnapshot = await getDocs(q);
-
-			if (!querySnapshot.empty) {
-				// Документ найден
-				const userArticleDoc = querySnapshot.docs[0];
-				articleId = userArticleDoc.id;
-				console.log(`Article found with ID: ${articleId} for UID: ${uid}`);
-				
-				const data = userArticleDoc.data();
+			if (docSnap.exists()) {
+				const data = docSnap.data();
 				article.head = data.head || 'Заголовок не найден';
 				article.body = data.body || 'Содержимое не найдено.';
+				console.log(`General note found for UID: ${uid}`);
 			} else {
-				// Документ не найден
-				console.log(`Article not found for UID: ${uid}. Creating a new one.`);
-				await createArticle(uid);
+                // This case should ideally not happen if user creation logic is correct
+				console.error(`General note not found for UID: ${uid}. This is unexpected.`);
+                error = 'Не удалось найти основной документ для заметок. Возможно, он не был создан. Обратитесь в поддержку.';
 			}
-		} catch (e: any)
-		{
-			console.error('Error getting article:', e);
+		} catch (e: any) {
+			console.error('Error getting general note:', e);
 			error = 'Ошибка загрузки документа: ' + e.message;
-		} finally
-		{
+		} finally {
 			isLoading = false;
 		}
 	}
 
 	async function handleSave(data: { head: string; body: string }) {
-		if (!$currentUser || !articleId) {
-			alert('Ошибка: пользователь не аутентифицирован или документ не найден.');
+		if (!$currentUser) {
+			alert('Ошибка: пользователь не аутентифицирован.');
 			return;
 		}
-		console.log(`Attempting to save article with ID: ${articleId}`);
+		console.log(`Attempting to save general note`);
 		try {
-			const docRef = doc(db, 'users', $currentUser.uid, 'articles', articleId); // Используем сохраненный ID документа
+			const docRef = doc(db, 'users', $currentUser.uid, 'articles', GENERAL_NOTE_ID);
 			await updateDoc(docRef, {
 				head: data.head,
 				body: data.body
 			});
-			console.log(`Article saved successfully for ID: ${articleId}`);
+			console.log(`General note saved successfully.`);
 			// Update local state to reflect changes immediately
 			article.head = data.head;
 			article.body = data.body;
@@ -102,33 +67,22 @@
 	$effect(() => {
 		console.log('Notes page effect triggered. $currentUser:', $currentUser);
 
-		// Case 1: Auth state is still initializing
 		if ($currentUser === undefined) {
-			console.log('Notes page: Auth state initializing. Waiting...');
 			isLoading = true;
-			error = ''; // Clear previous errors
+			error = '';
 			return;
 		}
 
-		// Case 2: User is logged out
 		if ($currentUser === null) {
-			console.log('Notes page: User is logged out.');
 			isLoading = false;
 			article = { head: '', body: '' };
-			articleId = null;
 			error = 'Пожалуйста, войдите в систему для просмотра заметок.';
 			return;
 		}
 
-		// Case 3: User is logged in
 		if ($currentUser && $currentUser.uid) {
-			console.log(`Notes page: User is logged in with UID: ${$currentUser.uid}. Fetching article.`);
-			isLoading = true;
-			error = ''; // Clear previous errors
-			getArticle($currentUser.uid);
+			getGeneralNote($currentUser.uid);
 		} else {
-			// Fallback for unexpected states
-			console.error('Notes page: $currentUser is in an unexpected state:', $currentUser);
 			isLoading = false;
 			error = 'Произошла непредвиденная ошибка аутентификации.';
 		}
