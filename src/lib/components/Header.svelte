@@ -73,19 +73,12 @@
 
 
 	<!-- Right Group: Avatar and other controls -->
-	<div class="flex items-center md:order-2">
+	<div class="flex items-center md:order-2 space-x-3 rtl:space-x-reverse">
+		<NavUl {activeUrl} classes={{ active: activeClass, nonActive: nonActiveClass }}>
+			<NavLi href="/notes">Notes</NavLi>
+		</NavUl>
 
-		{#key activeUrl}
-			<Navbar>
-				<NavUl {activeUrl}>
-					<NavLi href="/notes">Notes</NavLi>
-				</NavUl>
-			</Navbar>
-		{/key}
-
-		<div class="mt-2">
-			<DarkMode size="lg" />
-		</div>
+		<DarkMode size="lg" class="mr-5"/>
 
 		<div class="flex items-center">
 			<Avatar id="avatar-menu" src={$currentUser?.photoURL || avatar} />
