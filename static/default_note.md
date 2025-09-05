@@ -33,13 +33,13 @@
 
 ## 🛠️ Технологии
 
-| Логотип                                                                                                        | Технология | Назначение |
-|----------------------------------------------------------------------------------------------------------------|------------|------------|
-| <img src="https://firebase.google.com/downloads/brand-guidelines/PNG/logo-logomark.png" width="32"/>           | **Firebase** | Firestore, Auth |
-| <img src="https://www.netlify.com/v3/img/components/logomark.png" width="32"/>                                 | **Netlify** | Hosting + serverless функции |
-| <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Svelte_Logo.svg" width="32"/>                    | **Svelte 5** | Frontend |
-| <img src="https://flowbite.s3.amazonaws.com/logo.svg" width="32"/>                                             | **Flowbite Svelte** | UI-компоненты |
-| <img src="https://appexchange.salesforce.com/image_host/2b53bb52-3256-4cdb-860b-cbe896427aeb.png" width="48"/> | **Cloudinary** | Хранение изображений |
-| <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxTh0EandqP7vocgsiIwSh8_s0cY7SHMlC8g&s" width="48"/>                                                                                                             | **RAWG.io API** | Данные об играх |
+| Логотип                                                                                                              | Технология | Назначение |
+|----------------------------------------------------------------------------------------------------------------------|------------|------------|
+| <img src="https://firebase.google.com/downloads/brand-guidelines/PNG/logo-logomark.png" width="32"/>                 | **Firebase** | Firestore, Auth |
+| <img src="https://www.netlify.com/v3/img/components/logomark.png" width="32"/>                                       | **Netlify** | Hosting + serverless функции |
+| <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Svelte_Logo.svg" width="32"/>                          | **Svelte 5** | Frontend |
+| <img src="https://flowbite.s3.amazonaws.com/logo.svg" width="32"/>                                                   | **Flowbite Svelte** | UI-компоненты |
+| <img src="https://appexchange.salesforce.com/image_host/2b53bb52-3256-4cdb-860b-cbe896427aeb.png" width="32"/>       | **Cloudinary** | Хранение изображений |
+| <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxTh0EandqP7vocgsiIwSh8_s0cY7SHMlC8g&s" width="32"/> | **RAWG.io API** | Данные об играх |
 
 

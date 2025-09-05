@@ -4,6 +4,52 @@
 	import Auth from '$lib/components/Auth.svelte';
 	import { user } from '$lib/firebase';
 	import { Progressbar } from 'flowbite-svelte';
+	import { goto } from '$app/navigation';
+	import { allGames } from '$lib/stores/allGames';
+	import { userSettings } from '$lib/stores/userSettings';
+	import { page } from '$app/stores';
+
+	let initialCheckDone = $state(false);
+	let prevUser = $state(null);
+
+	$effect(() => {
+		// This effect handles the initial redirect after login.
+
+		// Condition 1: We have a user, but we didn't have one before (i.e., user just logged in).
+		const justLoggedIn = $user && !prevUser;
+
+		// Condition 2: The essential user data stores are loaded and ready.
+		const storesReady = $userSettings.categories.length > 0;
+
+		if (justLoggedIn && storesReady && !initialCheckDone) {
+			initialCheckDone = true;
+
+			// Don't redirect if the user is already on a notes page or settings page
+			if ($page.url.pathname.startsWith('/notes') || $page.url.pathname.startsWith('/settings')) {
+				prevUser = $user;
+				return;
+			}
+
+			console.log('Performing initial redirect...');
+			if ($allGames.length === 0) {
+				console.log('No games found, redirecting to general notes.');
+				goto('/notes/general', { replaceState: true });
+			} else {
+				const firstCategory = $userSettings.categories[0];
+				console.log(`Games found, redirecting to first category: ${firstCategory}`);
+				goto(`/${firstCategory}`, { replaceState: true });
+			}
+		}
+
+		// If the user logs out, reset the check.
+		if (!$user && prevUser) {
+			initialCheckDone = false;
+		}
+
+		// Update previous user state for the next run.
+		prevUser = $user;
+	});
+
 </script>
 
 <!-- Loading indicator: thin progress bar at the top -->
