@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "$lib/css/github-markdown-light.css";
+@import "$lib/css/github-markdown-dark.css";
 
 @plugin 'flowbite/plugin';
 
@@ -41,6 +43,21 @@
 
 /* by swasher by swasher, for scrollbar */
 @source "../src/**/*.{svelte,js,ts,html}"; /* Добавляем пути к твоим файлам */
+
+/* by swasher, for markdown rendering with https://github.com/sindresorhus/github-markdown-css styles*/
+/*.markdown-body {*/
+/*    background-color: transparent;*/
+/*}*/
+/* by swasher, for markdown rendering with https://github.com/sindresorhus/github-markdown-css styles*/
+
+/* Светлая тема по умолчанию */
+.markdown-body {
+    @apply text-gray-900 bg-white;
+}
+.dark .markdown-body {
+    @apply text-white bg-gray-900;
+}
+
 
 @layer base {
     /* disable chrome cancel button */

@@ -1,7 +1,19 @@
+## https://colorhunt.co/ - 
+
+множество вручную подобранных палитр
+
+## https://www.tints.dev/
+
+преобразовани палитр в tailwind-совместимые "градиенты"
+
+## http://colormind.io/ 
+
+палитра из пяти цветов, идея в которой такая, что она "переворачивается" для темной темы:
+
 ![img.png](.github/img.png)
 
 
-### Light shades 
+### Light shades
 Use this color as the background for your dark-on-light designs, or the text color of an inverted design.
 
 ### Light accent

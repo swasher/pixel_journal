@@ -161,7 +161,7 @@
 </div>
 
 {#if isEditorOpen}
-	<Modal title="" bind:open={isEditorOpen} size="7xl" permanent={true}>
+	<Modal title="" bind:open={isEditorOpen} outsideclose={false} size="7xl" permanent={true}>
 		<div class="h-[80vh]">
 			<MarkdownEditor 
 				head={article.head} 

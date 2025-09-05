@@ -2,8 +2,8 @@
     import { Heading, Label, Tags, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P } from 'flowbite-svelte';
     import { user, db, updateGameStatuses, deleteUserGames, auth } from '$lib/firebase';
     import { userSettings } from '$lib/stores/userSettings';
-    import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc } from 'firebase/firestore';
-    import { deleteUser } from 'firebase/auth';
+    import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc, query, collection, where, getDocs, writeBatch } from 'firebase/firestore';
+    import { deleteUser, GoogleAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
     import { goto } from '$app/navigation';
     import { PenOutline, TrashBinOutline } from 'flowbite-svelte-icons';
     import DeleteConfirmationModal from '$lib/components/DeleteConfirmationModal.svelte';
@@ -21,6 +21,7 @@
     let categoryToRename = $state<string | null>(null);
 
     let isDeleteAccountModalOpen = $state(false);
+    let deleteError = $state<string | null>(null);
 
     // Tags are also part of the userSettings store, but the Tags component needs a writable variable.
     // This effect syncs the store value to a local state variable.
@@ -40,7 +41,6 @@
             await setDoc(userSettingsRef, { tags: userTags }, { merge: true });
         } catch (error) {
             console.error("Error saving tags: ", error);
-            alert('Failed to save tags.');
         } finally {
             isLoading = false;
         }
@@ -48,10 +48,8 @@
 
     async function addCategory() {
         if (!newCategory.trim()) return;
-        if (!$currentUser) {
-            alert('You must be logged in to add categories.');
-            return;
-        }
+        if (!$currentUser) return;
+
         if ($userSettings.categories.includes(newCategory.trim())) {
             alert('This category already exists.');
             return;
@@ -67,7 +65,6 @@
             newCategory = '';
         } catch (error) {
             console.error("Error adding category: ", error);
-            alert('Failed to add category.');
         } finally {
             isLoading = false;
         }
@@ -91,7 +88,6 @@
             categoryToDelete = null;
         } catch (error) {
             console.error("Error deleting category: ", error);
-            alert('Failed to delete category.');
         } finally {
             isLoading = false;
         }
@@ -126,43 +122,88 @@
             categoryToRename = null;
         } catch (error) {
             console.error("Error renaming category and updating games: ", error);
-            alert('Failed to rename category. Check console for details.');
         } finally {
             isLoading = false;
         }
     }
 
+    function openDeleteAccountModal() {
+        deleteError = null; // Clear previous errors on open
+        isDeleteAccountModalOpen = true;
+    }
+
     async function handleDeleteAccount() {
-        if (!$currentUser) {
-            alert('You must be logged in to delete your account.');
-            return;
-        }
+        if (!$currentUser) return;
 
         isLoading = true;
-        try {
-            console.log('Starting account deletion process...');
-            // 1. Delete all user's games
-            await deleteUserGames($currentUser.uid);
+        deleteError = null;
+        const userId = $currentUser.uid;
 
-            // 2. Delete user's settings document
-            const userSettingsRef = doc(db, 'user_settings', $currentUser.uid);
+        // The core cleanup logic
+        const cleanupUserData = async () => {
+            console.log(`Starting data cleanup for user: ${userId}`);
+
+            // 1. Delete all games
+            await deleteUserGames(userId);
+
+            // 2. Delete all notes (Articles)
+            console.log(`Starting deletion of all notes for user: ${userId}`);
+            const notesQuery = query(collection(db, "Articles"), where("userId", "==", userId));
+            const notesSnapshot = await getDocs(notesQuery);
+            if (!notesSnapshot.empty) {
+                const notesBatch = writeBatch(db);
+                notesSnapshot.forEach(doc => notesBatch.delete(doc.ref));
+                await notesBatch.commit();
+                console.log(`Deleted ${notesSnapshot.size} notes.`);
+            } else {
+                console.log('No notes found to delete.');
+            }
+
+            // 3. Delete user settings document
+            console.log(`Starting deletion of user settings for user: ${userId}`);
+            const userSettingsRef = doc(db, 'user_settings', userId);
             await deleteDoc(userSettingsRef);
-            console.log('User settings document deleted.');
 
-            // 3. Delete the user account from Firebase Auth
+            console.log('User data cleanup complete.');
+        };
+
+        try {
+            // Step 1: Clean up all user data from Firestore
+            await cleanupUserData();
+
+            // Step 2: Delete the user account from Firebase Auth
             await deleteUser($currentUser);
-            console.log('Firebase user account deleted.');
-
-            alert('Your account and all associated data have been successfully deleted.');
+            
+            console.log('User account deleted successfully.');
             isDeleteAccountModalOpen = false;
             await goto('/');
 
         } catch (error: any) {
-            console.error("Error deleting account: ", error);
             if (error.code === 'auth/requires-recent-login') {
-                alert('This is a sensitive operation and requires you to have signed in recently. Please sign out and sign back in to delete your account.');
+                console.log('Requires recent login. Triggering re-auth popup.');
+                try {
+                    // This assumes the user signed in with Google.
+                    const provider = new GoogleAuthProvider();
+                    await reauthenticateWithPopup($currentUser, provider);
+                    
+                    // Retry the entire process after successful re-authentication
+                    console.log('Re-authentication successful. Retrying cleanup and deletion...');
+                    await cleanupUserData();
+                    await deleteUser($currentUser);
+
+                    console.log('User account deleted successfully after re-auth.');
+                    isDeleteAccountModalOpen = false;
+                    await goto('/');
+
+                } catch (reauthError: any) {
+                    console.error('Re-authentication failed:', reauthError);
+                    deleteError = 'Re-authentication failed. Please log out and log back in to delete your account.';
+                    isDeleteAccountModalOpen = false; // Close the modal to show the error
+                }
             } else {
-                alert('Failed to delete account. Please check the console for details.');
+                console.error('Error deleting account:', error);
+                deleteError = 'An error occurred while deleting your account. Please try again.';
+                isDeleteAccountModalOpen = false; // Close the modal to show the error
             }
         } finally {
             isLoading = false;
@@ -238,9 +279,14 @@
                 <P class="text-gray-600 dark:text-gray-400 mb-4">
                     This action is irreversible. All your games, categories, and tags will be permanently deleted.
                 </P>
-                <Button color="red" onclick={() => isDeleteAccountModalOpen = true} disabled={isLoading}>
+                <Button color="red" onclick={openDeleteAccountModal} disabled={isLoading}>
                     Delete My Account
                 </Button>
+                {#if deleteError}
+                    <P class="mt-4 text-red-600 dark:text-red-500 text-sm">
+                        {@html deleteError}
+                    </P>
+                {/if}
             </div>
         </div>
     {/if}
@@ -249,7 +295,7 @@
 {#if isDeleteModalOpen}
     <DeleteConfirmationModal
         open={isDeleteModalOpen}
-        message={`Are you sure you want to delete the category "${categoryToDelete}"? This action cannot be undone.`}
+        message={`Are you sure you want to delete the category \"${categoryToDelete}\"? This action cannot be undone.`}
         on:confirm={confirmDelete}
         on:cancel={() => isDeleteModalOpen = false}
     />

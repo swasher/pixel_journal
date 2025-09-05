@@ -15,7 +15,7 @@
 	import { SearchOutline, ChevronDownOutline } from "flowbite-svelte-icons";
 	import { Toggle } from "flowbite-svelte";
 
-	let activeUrl = $derived(page.url.pathname);
+	let activeUrl = $derived(decodeURIComponent(page.url.pathname));
 	let activeClass = "text-orange bg-green-700 md:bg-transparent md:text-green-700 md:dark:text-white lg:dark:bg-orange-500 md:dark:bg-transparent";
 	let nonActiveClass = "text-gray-700 hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-green-700 dark:text-gray-400 md:dark:hover:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent";
 
@@ -37,11 +37,10 @@
 	<!-- Center Group: Menu and Search -->
 	<div class="flex-grow justify-center hidden md:flex items-center space-x-4">
 		<NavUl {activeUrl} classes={{ active: activeClass, nonActive: nonActiveClass }}>
-            {#each $userSettings.categories as category}
+            {#each $userSettings.categories as category (category)}
                 <NavLi href="/{category}">{category}</NavLi>
             {/each}
-            <NavLi href="/notes">Notes</NavLi>
-			<DarkMode size="md" />
+
 		</NavUl>
 
 		<!-- Поисковая строка с переключателем -->
@@ -75,6 +74,19 @@
 
 	<!-- Right Group: Avatar and other controls -->
 	<div class="flex items-center md:order-2">
+
+		{#key activeUrl}
+			<Navbar>
+				<NavUl {activeUrl}>
+					<NavLi href="/notes">Notes</NavLi>
+				</NavUl>
+			</Navbar>
+		{/key}
+
+		<div class="mt-2">
+			<DarkMode size="lg" />
+		</div>
+
 		<div class="flex items-center">
 			<Avatar id="avatar-menu" src={$currentUser?.photoURL || avatar} />
 		</div>
@@ -85,7 +97,7 @@
 	<!-- Mobile-only Menu -->
 	<div class="md:hidden">
 		<NavUl {activeUrl}  classes={{ active: activeClass, nonActive: nonActiveClass }}>
-            {#each $userSettings.categories as category}
+            {#each $userSettings.categories as category (category)}
                 <NavLi href="/{category}">{category}</NavLi>
             {/each}
 			<NavLi href="/notes">Notes</NavLi>
@@ -116,9 +128,7 @@
 				</div>
 
 			</div>
-			<div class="mt-2">
-				<DarkMode size="md" />
-			</div>
+
 		</NavUl>
 	</div>
 

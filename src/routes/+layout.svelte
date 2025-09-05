@@ -2,17 +2,19 @@
 	import '../app.css';
 	import Navbar from '$lib/components/Header.svelte';
 	import Auth from '$lib/components/Auth.svelte';
-	import { user } from '$lib/firebase'; // Импортируем только user
-	import { Spinner } from 'flowbite-svelte';
+	import { user } from '$lib/firebase';
+	import { Progressbar } from 'flowbite-svelte';
 </script>
 
-{#if $user === undefined}
-	<!-- Состояние неопределенности: показываем спиннер -->
-	<div class="flex h-screen w-full items-center justify-center bg-gray-900">
-		<Spinner size="12" color="pink" />
-	</div>
-{:else if $user}
-	<!-- Пользователь определен и авторизован: показываем сайт -->
+<!-- Loading indicator: thin progress bar at the top -->
+<div class="fixed top-0 left-0 w-full z-50 h-1">
+	{#if $user === undefined}
+		<Progressbar size="h-1" color="pink" indeterminate />
+	{/if}
+</div>
+
+{#if $user}
+	<!-- User is logged in: show the site -->
 	<Navbar />
 	<main class="p-4 pt-20
 		scrollbar-thumb-gray-700 dark:scrollbar-thumb-gray-400
@@ -20,9 +22,10 @@
 	">
 		<slot />
 	</main>
-{:else}
-	<!-- Пользователь определен и не авторизован: показываем форму входа -->
+{:else if $user === null}
+	<!-- User is logged out (and auth state is resolved): show the auth form -->
 	<div class="flex min-h-screen items-center justify-center">
 		<Auth />
 	</div>
 {/if}
+<!-- Note: if $user is undefined, neither of the blocks above will render, showing a blank page with only the progress bar. This is the desired behavior to prevent flicker. -->

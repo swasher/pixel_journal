@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { db, user } from '$lib/firebase';
 import type { User } from 'firebase/auth';
 
@@ -10,7 +10,7 @@ export interface UserSettings {
 
 const defaultSettings: UserSettings = {
     categories: ['Backlog', 'Completed', 'Abandoned', 'Rejected'],
-    tags: []
+    tags: ['Шедевр', 'Надо перепройти']
 };
 
 const createUserSettingsStore = () => {
@@ -19,13 +19,26 @@ const createUserSettingsStore = () => {
     let unsubscribeFromFirestore: () => void;
 
     user.subscribe((currentUser: User | null | undefined) => {
-        // Unsubscribe from previous listener if it exists
         if (unsubscribeFromFirestore) {
             unsubscribeFromFirestore();
         }
 
         if (currentUser) {
             const userSettingsRef = doc(db, 'user_settings', currentUser.uid);
+
+            // One-time check to create settings if they don't exist.
+            getDoc(userSettingsRef).then(docSnap => {
+                if (!docSnap.exists()) {
+                    console.log(`First login for user ${currentUser.uid}. Creating default settings...`);
+                    setDoc(userSettingsRef, defaultSettings).catch(error => {
+                        console.error("Failed to create default settings:", error);
+                    });
+                }
+            }).catch(error => {
+                console.error("Error checking for user settings:", error);
+            });
+
+            // Realtime listener for updates.
             unsubscribeFromFirestore = onSnapshot(userSettingsRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -34,6 +47,7 @@ const createUserSettingsStore = () => {
                         tags: data.tags || []
                     });
                 } else {
+                    // User's settings document has been deleted. Reset to default in the UI.
                     set(defaultSettings);
                 }
             }, (error) => {
