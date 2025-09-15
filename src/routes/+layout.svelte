@@ -24,20 +24,18 @@
 		if (justLoggedIn && storesReady && !initialCheckDone) {
 			initialCheckDone = true;
 
-			// Don't redirect if the user is already on a notes page or settings page
-			if ($page.url.pathname.startsWith('/notes') || $page.url.pathname.startsWith('/settings')) {
-				prevUser = $user;
-				return;
-			}
-
-			console.log('Performing initial redirect...');
-			if ($allGames.length === 0) {
-				console.log('No games found, redirecting to general notes.');
-				goto('/notes/general', { replaceState: true });
-			} else {
-				const firstCategory = $userSettings.categories[0];
-				console.log(`Games found, redirecting to first category: ${firstCategory}`);
-				goto(`/${firstCategory}`, { replaceState: true });
+			// Only perform the initial redirect if the user lands on the root page.
+			// If they refresh any other page, they should stay there.
+			if ($page.url.pathname === '/') {
+				console.log('User on root page, performing initial redirect...');
+				if ($allGames.length === 0) {
+					console.log('No games found, redirecting to general notes.');
+					goto('/notes', { replaceState: true });
+				} else {
+					const firstCategory = $userSettings.categories[0];
+					console.log(`Games found, redirecting to first category: ${firstCategory}`);
+					goto(`/${firstCategory}`, { replaceState: true });
+				}
 			}
 		}
 
