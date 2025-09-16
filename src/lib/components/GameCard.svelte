@@ -1,7 +1,8 @@
 <script lang="ts">
-    import { StarSolid, HeartSolid, StarHalfSolid, CloseCircleSolid } from "flowbite-svelte-icons";
-    import { Card, Table, TableBody, TableBodyCell, TableBodyRow, Badge } from "flowbite-svelte";
-		import { Rating, Star, type RatingIconProps } from "flowbite-svelte";
+    import { HeartOutline, HeartSolid } from "flowbite-svelte-icons";
+    import { Card, Table, TableBody, TableBodyCell, TableBodyRow, Badge, Button } from "flowbite-svelte";
+    import { GradientButton  } from "flowbite-svelte";
+		import { Rating } from "flowbite-svelte";
 
 
 		interface GameData {
@@ -23,7 +24,10 @@
         tags?: string[]; // Добавляем tags
     }
 
-    let { game, onEdit } = $props<{ game: GameData; onEdit?: (game: GameData) => void; }>();
+    let { game, onEdit } = $props<{
+        game: GameData;
+        onEdit?: (game: GameData) => void;
+    }>();
 
     // Классы для стилизации таблицы для уменьшения дублирования в разметке
     const rowClass = "bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600";
@@ -32,6 +36,7 @@
 
     // Форматируем дату для отображения
     const formattedDate = game.date_added ? new Date(game.date_added).toLocaleDateString() : 'N/A';
+
 </script>
 
 <Card
@@ -42,11 +47,18 @@
     onclick={() => onEdit?.(game)}
 >
     <div class="flex flex-col p-4 leading-normal flex-grow">
-        <h5 class="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">{game.title} ({game.year || 'N/A'})
-			<a href="/notes/{game.id}" onclick={(e) => e.stopPropagation()} class="ms-2 text-sm font-medium text-primary-600 hover:underline dark:text-primary-500">
-				(Заметка)
-			</a>
-		</h5>
+        <div class="flex items-baseline gap-2 mb-2">
+            <h5 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                {game.title} ({game.year || 'N/A'})
+            </h5>
+            {#if game.tags && game.tags.length > 0}
+                <div class="flex flex-wrap gap-1">
+                    {#each game.tags as tag (tag)}
+                        <Badge color="indigo" class="text-xs">{tag}</Badge>
+                    {/each}
+                </div>
+            {/if}
+        </div>
 
         <Table classes={{ div: "relative overflow-x-auto" }} class="text-sm">
             <TableBody>
@@ -73,18 +85,6 @@
                         <TableBodyCell class={dataCellClass}>{game.genres.join(', ')}</TableBodyCell>
                     </TableBodyRow>
                 {/if}
-                {#if game.tags && game.tags.length > 0}
-                    <TableBodyRow class={rowClass}>
-                        <TableBodyCell class={headerCellClass}>Tags</TableBodyCell>
-                        <TableBodyCell class={dataCellClass}>
-                            <div class="flex flex-wrap gap-1">
-                                {#each game.tags as tag (tag)}
-                                    <Badge color="indigo">{tag}</Badge>
-                                {/each}
-                            </div>
-                        </TableBodyCell>
-                    </TableBodyRow>
-                {/if}
                 {#if game.series}
                     <TableBodyRow class={rowClass}>
                         <TableBodyCell class={headerCellClass}>Series</TableBodyCell>
@@ -106,18 +106,31 @@
             </TableBody>
         </Table>
 
-        <div class="flex items-center mt-4">
-            {#if game.is_favorite}
-                <HeartSolid class="w-5 h-5 text-red-500 me-2" />
-            {/if}
+        <div class="flex items-center mt-auto pt-4 gap-2">
+            <Button size="xs" href="/notes/{game.id}" onclick={(e) => e.stopPropagation()} outline>
+                Заметка
+            </Button>
+
+            <div class="flex items-center">
+                {#if game.is_favorite}
+                    <HeartSolid class="w-5 h-5 text-red-500"/>
+                {:else}
+                    <HeartOutline class="w-5 h-5 text-gray-500"/>
+                {/if}
+
+            </div>
+
             {#if game.user_rating && game.user_rating > 0}
-  							<Rating id="example-1" total={5} size={25} rating={game.user_rating} />
-						{/if}
+                <div class="flex items-center ml-auto">
+                    <Rating id="example-1" total={5} size={20} rating={game.user_rating} />
+                </div>
+            {/if}
         </div>
 
         {#if game.user_note}
-            <p class="mt-3 text-sm italic text-gray-600 dark:text-gray-300">Note: {game.user_note}</p>
+            <p class="mt-3 text-sm italic text-gray-600 dark:text-gray-300">{game.user_note}</p>
         {/if}
     </div>
 </Card>
+
 

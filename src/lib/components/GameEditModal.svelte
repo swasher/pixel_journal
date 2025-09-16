@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { Modal, Label, Input, Button, Textarea, Toggle, Range, Select, Tags } from 'flowbite-svelte';
+	import { Modal, Label, Input, Button, Textarea, Toggle, Select, Tags } from 'flowbite-svelte';
 	import { db, user } from '$lib/firebase';
 	import { doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 	import DeleteConfirmationModal from '$lib/components/DeleteConfirmationModal.svelte';
+	import ClickableRating from './ClickableRating.svelte';
 
 	interface GameData {
 		id: string;
@@ -26,8 +27,11 @@
 
 	let { game, onClose } = $props<{ game: GameData; onClose: () => void }>();
 
-	// Внутреннее состояние формы, инициализированное данными из game
-	let editedGame = $state<GameData>({ ...game, tags: game.tags || [] }); // <-- Инициализируем теги
+	// Отдельное состояние для рейтинга, чтобы обойти проблему с привязкой к вложенному свойству
+	let rating = $state(game.user_rating || 0);
+
+	// Внутреннее состояние формы, без рейтинга
+	let editedGame = $state<Omit<GameData, 'user_rating'>>({ ...game, tags: game.tags || [] });
 	let isModalOpen = $state(true);
 	let isDeleteModalOpen = $state(false);
 	let availableTags = $state<string[]>([]); // <-- Для хранения списка всех тегов пользователя
@@ -90,24 +94,18 @@
 
 		try {
 			const gameRef = doc(db, 'users', $currentUser.uid, 'games', editedGame.id);
-			const updatedData: Record<string, any> = {};
+			// Собираем данные для обновления, включая рейтинг из отдельного состояния
+			const updatedData: Record<string, any> = {
+				...editedGame,
+				user_rating: rating ?? 0
+			};
 
-			// Iterate over all possible fields and add them only if they are not undefined
-			// For arrays and strings, ensure they are not undefined, converting null to default empty values if necessary
-			if (editedGame.title !== undefined) updatedData.title = editedGame.title;
-			if (editedGame.year !== undefined) updatedData.year = editedGame.year;
-			updatedData.developer = editedGame.developer || []; // Ensure it's an array, not undefined/null
-			updatedData.publisher = editedGame.publisher || []; // Ensure it's an array, not undefined/null
-			updatedData.genres = editedGame.genres || []; // Ensure it's an array, not undefined/null
-			updatedData.series = editedGame.series || ''; // Ensure it's a string, not undefined/null
-			updatedData.user_note = editedGame.user_note || ''; // Ensure it's a string, not undefined/null
-			if (editedGame.is_favorite !== undefined)
-				updatedData.is_favorite = editedGame.is_favorite;
-			if (editedGame.user_rating !== undefined) updatedData.user_rating = editedGame.user_rating;
-			if (editedGame.play_time !== undefined) updatedData.play_time = editedGame.play_time;
-			updatedData.markdown_content = editedGame.markdown_content || ''; // Ensure it's a string, not undefined/null
-			if (editedGame.status !== undefined) updatedData.status = editedGame.status;
-			updatedData.tags = editedGame.tags || []; // <-- Сохраняем теги
+			// Очистка undefined значений, если это необходимо (хотя editedGame уже не должен их содержать)
+			Object.keys(updatedData).forEach(key => {
+				if (updatedData[key] === undefined) {
+					delete updatedData[key];
+				}
+			});
 
 			await updateDoc(gameRef, updatedData);
 			console.log('Game updated successfully!');
@@ -172,19 +170,6 @@
 				<Label for="play_time" class="mb-2">Play Time (hours)</Label>
 				<Input id="play_time" size="sm" type="number" bind:value={editedGame.play_time} />
 			</div>
-			<div>
-				<Label for="user_rating" class="mb-2">Your Rating (1-5)</Label>
-				<Range
-					id="user_rating"
-					min="0"
-					max="5"
-					step="1"
-					bind:value={editedGame.user_rating}
-				/>
-				<p class="text-sm text-gray-500 dark:text-gray-400">
-					Current: {editedGame.user_rating || 0}
-				</p>
-			</div>
 			<div class="md:col-span-2">
 				<Label for="status" class="mb-1">Status</Label>
 				<Select size="sm" id="status" items={statusOptions} bind:value={editedGame.status} />
@@ -208,8 +193,9 @@
 			<Textarea id="user_note" bind:value={editedGame.user_note} rows={2} cols={88} />
 		</div>
 
-		<div class="flex items-center mb-4">
+		<div class="flex items-center justify-between mb-4">
 			<Toggle bind:checked={editedGame.is_favorite}>My favorite game</Toggle>
+			<ClickableRating bind:rating={rating} />
 		</div>
 
 		<div class="flex justify-between items-center mt-auto pt-4 border-t dark:border-gray-700">

@@ -34,12 +34,12 @@
             const noteSnap = await getDoc(noteRef);
             if (noteSnap.exists()) {
                 const noteData = noteSnap.data();
-                article.head = noteData.head || `Заметка для ${gameTitle}`;
+                article.head = noteData.head || `${gameTitle}`;
                 article.body = noteData.body || '';
             } else {
                 // Note doesn't exist, start with a default state
-                article.head = `Заметка для ${gameTitle}`;
-                article.body = 'Начните вводить текст вашей заметки здесь...';
+                article.head = `${gameTitle}`;
+                article.body = 'Нажмите на значок редактирования...';
             }
         } catch (e: any) {
             console.error('Error getting game or note:', e);
