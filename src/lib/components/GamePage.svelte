@@ -5,7 +5,7 @@
     import { writable, type Writable } from 'svelte/store';
     import { setContext } from 'svelte';
 
-    let { status } = $props<{ status: 'backlog' | 'completed' | 'rejected' | 'abandoned' }>();
+    let { status } = $props<{ status: string }>();
 
     interface GameDataForToc {
         id: string;

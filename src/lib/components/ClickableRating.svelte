@@ -1,5 +1,9 @@
 <script lang="ts">
-    let { maxStars = 5, rating = 0 } = $props<{ maxStars?: number; rating: number }>();
+    let { maxStars = 5, rating = 0, onchange } = $props<{
+        maxStars?: number;
+        rating: number;
+        onchange: (newRating: number) => void;
+    }>();
 
     let hoverRating = $state(0);
 
@@ -15,6 +19,11 @@
         const effectiveRating = hoverRating > 0 ? hoverRating : rating;
         return starIndex <= effectiveRating;
     }
+
+    function handleClick(starIndex: number) {
+        // Call the callback function passed from the parent
+        onchange(starIndex);
+    }
 </script>
 
 <div class="rating-container" onmouseleave={resetHover}>
@@ -22,7 +31,7 @@
         {@const starIndex = i + 1}
         <span
             class="star-wrapper"
-            onclick={() => { console.log(`Star clicked: ${starIndex}, current rating: ${rating}`); rating = starIndex; }}
+            onclick={() => handleClick(starIndex)}
             onmouseenter={() => handleHover(starIndex)}
         >
             <svg

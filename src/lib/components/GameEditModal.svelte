@@ -4,26 +4,7 @@
 	import { doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 	import DeleteConfirmationModal from '$lib/components/DeleteConfirmationModal.svelte';
 	import ClickableRating from './ClickableRating.svelte';
-
-	interface GameData {
-		id: string;
-		rawg_id: number; // Добавляем rawg_id
-		title: string;
-		year: number | null;
-		image_url: string;
-		developer?: string[];
-		publisher?: string[];
-		genres?: string[];
-		series?: string;
-		user_note?: string;
-		is_favorite?: boolean;
-		user_rating?: number;
-		play_time?: number;
-		markdown_content?: string;
-		status: 'backlog' | 'completed' | 'rejected' | 'abandoned';
-		date_added?: Date;
-		tags?: string[]; // <-- Добавляем поле для тегов
-	}
+    import type { GameData } from "$lib/types";
 
 	let { game, onClose } = $props<{ game: GameData; onClose: () => void }>();
 
@@ -35,6 +16,7 @@
 	let isModalOpen = $state(true);
 	let isDeleteModalOpen = $state(false);
 	let availableTags = $state<string[]>([]); // <-- Для хранения списка всех тегов пользователя
+	let statusOptions = $state<{ value: string; name: string }[]>([]); // Динамические опции статуса
 	const currentUser = $derived(user);
 
 	// Создаем производные строковые состояния для полей с массивами
@@ -42,24 +24,24 @@
 	let publisherString = $state(editedGame.publisher?.join(', ') || ''); // Добавляем publisherString
 	let genresString = $state(editedGame.genres?.join(', ') || '');
 
-	const statusOptions = [
-		{ value: 'backlog', name: 'Backlog' },
-		{ value: 'completed', name: 'Completed' },
-		{ value: 'rejected', name: 'Rejected' },
-		{ value: 'abandoned', name: 'Abandoned' }
-	];
-
-	// <-- Загружаем доступные теги при открытии модального окна
+	// Загружаем теги и категории пользователя
 	$effect(() => {
-		async function fetchUserTags() {
+		async function fetchUserSettings() {
 			if (!$currentUser) return;
 			const userSettingsRef = doc(db, 'users', $currentUser.uid);
 			const docSnap = await getDoc(userSettingsRef);
 			if (docSnap.exists()) {
-				availableTags = docSnap.data().tags || [];
+				const userData = docSnap.data();
+				availableTags = userData.tags || [];
+				// Преобразуем категории в нужный формат
+				const categories = userData.categories || [];
+				statusOptions = categories.map((cat: string) => ({
+					value: cat, // Используем оригинальное название
+					name: cat
+				}));
 			}
 		}
-		fetchUserTags();
+		fetchUserSettings();
 	});
 
 
@@ -195,7 +177,7 @@
 
 		<div class="flex items-center justify-between mb-4">
 			<Toggle bind:checked={editedGame.is_favorite}>My favorite game</Toggle>
-			<ClickableRating bind:rating={rating} />
+			<ClickableRating rating={rating} onchange={(newRating) => rating = newRating} />
 		</div>
 
 		<div class="flex justify-between items-center mt-auto pt-4 border-t dark:border-gray-700">
@@ -215,7 +197,7 @@
 		open={isDeleteModalOpen}
 		message="Are you sure you want to delete this game? This action cannot be undone."
 		class="z-60"
-		on:confirm={confirmDelete}
-		on:cancel={() => (isDeleteModalOpen = false)}
+		onconfirm={confirmDelete}
+		oncancel={() => (isDeleteModalOpen = false)}
 	/>
 {/if}

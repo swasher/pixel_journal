@@ -3,31 +3,14 @@
     import { Card, Table, TableBody, TableBodyCell, TableBodyRow, Badge, Button } from "flowbite-svelte";
     import { GradientButton  } from "flowbite-svelte";
 		import { Rating } from "flowbite-svelte";
-
-
-		interface GameData {
-        id: string; // Changed to string to match Firestore doc.id
-        title: string;
-        year: number | null;
-        image_url: string;
-        developer?: string[];
-        publisher?: string[];
-        genres?: string[];
-        series?: string;
-        user_note?: string;
-        is_favorite?: boolean;
-        user_rating?: number;
-        play_time?: number;
-        markdown_content?: string;
-        status: 'backlog' | 'completed' | 'rejected' | 'abandoned';
-        date_added?: Date; // Добавляем date_added
-        tags?: string[]; // Добавляем tags
-    }
+    import type { GameData } from "$lib/types";
 
     let { game, onEdit } = $props<{
         game: GameData;
         onEdit?: (game: GameData) => void;
     }>();
+
+    console.log('GameCard rendered or updated:', game.title, 'Rating:', game.user_rating);
 
     // Классы для стилизации таблицы для уменьшения дублирования в разметке
     const rowClass = "bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600";

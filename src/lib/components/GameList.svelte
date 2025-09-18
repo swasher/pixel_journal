@@ -6,30 +6,9 @@
     import { Spinner } from "flowbite-svelte";
     import { searchQuery } from "$lib/stores/searchQuery";
     import { isGlobalSearch } from "$lib/stores/searchScope";
+    import type { GameData } from "$lib/types";
 
-    let { status, onGamesUpdate } = $props<{ status: 'backlog' | 'completed' | 'rejected' | 'abandoned'; onGamesUpdate: (games: GameDataForToc[]) => void }>();
-
-    // ... (интерфейсы остаются теми же)
-    interface GameData {
-        id: string;
-        rawg_id: number;
-        title: string;
-        year: number | null;
-        image_url: string;
-        developer?: string[];
-        publisher?: string[];
-        genres?: string[];
-        series?: string;
-        user_note?: string;
-        is_favorite?: boolean;
-        user_rating?: number;
-        play_time?: number;
-        markdown_content?: string;
-        status: 'backlog' | 'completed' | 'rejected' | 'abandoned';
-        date_added?: Date;
-        
-        tags?: string[]; // Добавляем tags
-    }
+    let { status, onGamesUpdate } = $props<{ status: string; onGamesUpdate: (games: GameDataForToc[]) => void }>();
 
     interface GameDataForToc {
         id: string;
@@ -44,16 +23,21 @@
 
     const currentUser = $derived(user); // Подписываемся на user store
 
-    const filteredGames = $derived(games.filter(game =>
-        game.title.toLowerCase().includes($searchQuery.toLowerCase())
-    ));
+    const filteredGames = $derived.by(() => {
+        console.log('GameList: $derived running. Input games count:', games.length);
+        const result = games.filter(game =>
+            game.title.toLowerCase().includes($searchQuery.toLowerCase())
+        );
+        console.log('GameList: $derived finished. Output games count:', result.length);
+        return result;
+    });
 
     $effect(() => {
         onGamesUpdate(filteredGames.map(g => ({ id: g.id, title: g.title })));
     });
 
     $effect(() => {
-        console.log(`GameList: Effect triggered. currentUser:`, currentUser);
+        console.log(`GameList: Effect triggered. currentUser:`, currentUser, 'Status:', status);
 
 			// Этот эффект будет перезапускаться при изменении пользователя, статуса, глобального поиска или текста поиска
 			if (!$currentUser) {
@@ -72,20 +56,20 @@
 
         const isGlobal = $isGlobalSearch;
         const queryText = $searchQuery;
+        const currentStatus = status; // Make status a dependency of the effect
 
         if (!isGlobal || !queryText) {
-            queryConstraints.push(where("status", "==", status));
+            queryConstraints.push(where("status", "==", currentStatus));
         }
 
         const q = query(gamesCollectionRef, ...queryConstraints);
 
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            console.log('GameList: Firestore snapshot received. Docs:', querySnapshot.docs.length);
-            const fetchedGames: GameData[] = [];
-            querySnapshot.forEach((doc) => {
-                const data = doc.data() as DocumentData;
-                fetchedGames.push({
-                    id: doc.id,
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            console.log('GameList: Firestore snapshot received with docChanges.');
+            snapshot.docChanges().forEach((change) => {
+                const data = change.doc.data() as DocumentData;
+                const changedGame: GameData = {
+                    id: change.doc.id,
                     rawg_id: data.rawg_id,
                     title: data.title,
                     year: data.year,
@@ -101,11 +85,38 @@
                     markdown_content: data.markdown_content,
                     status: data.status,
                     date_added: data.date_added ? data.date_added.toDate() : undefined,
-                    
-                    tags: data.tags || [] // Добавляем tags
-                });
+                    tags: data.tags || []
+                };
+
+                if (change.type === "added") {
+                    console.log("GameList: Game added:", changedGame.title);
+                    // Add to array, but avoid duplicates that can happen with fast re-renders
+                    if (!games.some(g => g.id === changedGame.id)) {
+                        games = [...games, changedGame];
+                    }
+                }
+                if (change.type === "modified") {
+                    console.log("GameList: Game modified:", changedGame.title, "New Rating:", changedGame.user_rating);
+                    const index = games.findIndex(g => g.id === changedGame.id);
+                    if (index !== -1) {
+                        // Create a new array with the updated item
+                        games = [
+                            ...games.slice(0, index),
+                            changedGame,
+                            ...games.slice(index + 1)
+                        ];
+                    }
+                }
+                if (change.type === "removed") {
+                    console.log("GameList: Game removed:", changedGame.title);
+                    games = games.filter(g => g.id !== changedGame.id);
+                }
             });
-            games = fetchedGames;
+
+            // Sort games by date added after processing changes
+            games.sort((a, b) => (b.date_added?.getTime() || 0) - (a.date_added?.getTime() || 0));
+
+
             isLoading = false;
             error = null;
         }, (e) => {
@@ -142,7 +153,7 @@
     {:else}
         <!-- Обертка для ограничения ширины и центрирования была перенесена в GamePage.svelte -->
         <div class="grid grid-cols-1 gap-4">
-            {#each filteredGames as game (game.id)}
+            {#each filteredGames as game (game.id + game.user_rating)}
                 <div id="game-{game.id}">
                     <GameCard {game} onEdit={handleEditGame} />
                 </div>

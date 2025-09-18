@@ -9,6 +9,8 @@
 	import { userSettings } from '$lib/stores/userSettings';
 	import { page } from '$app/stores';
 
+	let { children } = $props();
+
 	let initialCheckDone = $state(false);
 	let prevUser = $state(null);
 
@@ -64,7 +66,7 @@
 		scrollbar-thumb-gray-700 dark:scrollbar-thumb-gray-400
  		scrollbar-track-gray-300 dark:scrollbar-track-gray-800
 	">
-		<slot />
+		{@render children()}
 	</main>
 {:else if $user === null}
 	<!-- User is logged out (and auth state is resolved): show the auth form -->

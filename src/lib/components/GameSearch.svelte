@@ -4,7 +4,7 @@
 	import { addDoc, collection } from 'firebase/firestore';
 	import { allGames } from '$lib/stores/allGames';
 
-	let { status } = $props<{ status: 'backlog' | 'completed' | 'rejected' | 'abandoned' }>();
+	    let { status } = $props<{ status: string }>();
 
 	interface GameSearchResult {
 		id: number;
