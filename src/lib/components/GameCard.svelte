@@ -10,8 +10,6 @@
         onEdit?: (game: GameData) => void;
     }>();
 
-    console.log('GameCard rendered or updated:', game.title, 'Rating:', game.user_rating);
-
     // Классы для стилизации таблицы для уменьшения дублирования в разметке
     const rowClass = "bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600";
     const headerCellClass = "font-semibold text-gray-900 dark:text-white py-1 px-4 w-32"; // Задаем фиксированную ширину w-32

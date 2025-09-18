@@ -20,16 +20,14 @@
     let isLoading = $state(true);
     let error = $state<string | null>(null);
     let editingGame = $state<GameData | null>(null);
+    let filteredGames = $state<GameData[]>([]);
 
     const currentUser = $derived(user); // Подписываемся на user store
 
-    const filteredGames = $derived.by(() => {
-        console.log('GameList: $derived running. Input games count:', games.length);
-        const result = games.filter(game =>
+    $effect(() => {
+        filteredGames = games.filter(game =>
             game.title.toLowerCase().includes($searchQuery.toLowerCase())
         );
-        console.log('GameList: $derived finished. Output games count:', result.length);
-        return result;
     });
 
     $effect(() => {
@@ -64,12 +62,13 @@
 
         const q = query(gamesCollectionRef, ...queryConstraints);
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            console.log('GameList: Firestore snapshot received with docChanges.');
-            snapshot.docChanges().forEach((change) => {
-                const data = change.doc.data() as DocumentData;
-                const changedGame: GameData = {
-                    id: change.doc.id,
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            console.log('GameList: Firestore snapshot received. Docs:', querySnapshot.docs.length);
+            const fetchedGames: GameData[] = [];
+            querySnapshot.forEach((doc) => {
+                const data = doc.data() as DocumentData;
+                fetchedGames.push({
+                    id: doc.id,
                     rawg_id: data.rawg_id,
                     title: data.title,
                     year: data.year,
@@ -85,38 +84,11 @@
                     markdown_content: data.markdown_content,
                     status: data.status,
                     date_added: data.date_added ? data.date_added.toDate() : undefined,
-                    tags: data.tags || []
-                };
-
-                if (change.type === "added") {
-                    console.log("GameList: Game added:", changedGame.title);
-                    // Add to array, but avoid duplicates that can happen with fast re-renders
-                    if (!games.some(g => g.id === changedGame.id)) {
-                        games = [...games, changedGame];
-                    }
-                }
-                if (change.type === "modified") {
-                    console.log("GameList: Game modified:", changedGame.title, "New Rating:", changedGame.user_rating);
-                    const index = games.findIndex(g => g.id === changedGame.id);
-                    if (index !== -1) {
-                        // Create a new array with the updated item
-                        games = [
-                            ...games.slice(0, index),
-                            changedGame,
-                            ...games.slice(index + 1)
-                        ];
-                    }
-                }
-                if (change.type === "removed") {
-                    console.log("GameList: Game removed:", changedGame.title);
-                    games = games.filter(g => g.id !== changedGame.id);
-                }
+                    
+                    tags: data.tags || [] // Добавляем tags
+                });
             });
-
-            // Sort games by date added after processing changes
-            games.sort((a, b) => (b.date_added?.getTime() || 0) - (a.date_added?.getTime() || 0));
-
-
+            games = fetchedGames;
             isLoading = false;
             error = null;
         }, (e) => {
