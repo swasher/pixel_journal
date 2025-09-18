@@ -87,25 +87,30 @@
             </TableBody>
         </Table>
 
-        <div class="flex items-center mt-auto pt-4 gap-2">
-            <Button size="xs" href="/notes/{game.id}" onclick={(e) => e.stopPropagation()} outline>
-                Заметка
-            </Button>
+        <div class="flex items-center mt-auto pt-4">
+            <div class="flex items-center gap-2">
+                <div class="flex items-center">
+                    {#if game.is_favorite}
+                        <HeartSolid class="w-5 h-5 text-red-500"/>
+                    {:else}
+                        <HeartOutline class="w-5 h-5 text-gray-500"/>
+                    {/if}
+                </div>
 
-            <div class="flex items-center">
-                {#if game.is_favorite}
-                    <HeartSolid class="w-5 h-5 text-red-500"/>
-                {:else}
-                    <HeartOutline class="w-5 h-5 text-gray-500"/>
+								<div class="divider"></div>
+
+                {#if game.user_rating && game.user_rating > 0}
+                    <div class="flex items-center">
+                        <Rating id="example-1" total={5} size={20} rating={game.user_rating} />
+                    </div>
                 {/if}
-
             </div>
 
-            {#if game.user_rating && game.user_rating > 0}
-                <div class="flex items-center ml-auto">
-                    <Rating id="example-1" total={5} size={20} rating={game.user_rating} />
-                </div>
-            {/if}
+            <div class="ml-auto">
+                <Button size="xs" href="/notes/{game.id}" onclick={(e) => e.stopPropagation()} outline>
+                    Заметка
+                </Button>
+            </div>
         </div>
 
         {#if game.user_note}
@@ -115,3 +120,10 @@
 </Card>
 
 
+<style>
+    .divider {
+        width: 1px;
+        height: 20px; /* Установите высоту, равную высоте соседних элементов */
+        background-color: var(--color-secondary-800); /* Цвет разделителя */
+    }
+</style>

@@ -35,17 +35,13 @@
     });
 
     $effect(() => {
-        console.log(`GameList: Effect triggered. currentUser:`, currentUser, 'Status:', status);
-
 			// Этот эффект будет перезапускаться при изменении пользователя, статуса, глобального поиска или текста поиска
 			if (!$currentUser) {
-            console.log('GameList: User not logged in or not yet initialized. Clearing games.');
             games = [];
             isLoading = false;
             return;
         }
 
-        console.log('GameList: User is logged in. UID:', $currentUser.uid);
         isLoading = true;
 
         const gamesCollectionRef = collection(db, 'users', $currentUser.uid, 'games');
@@ -63,7 +59,6 @@
         const q = query(gamesCollectionRef, ...queryConstraints);
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            console.log('GameList: Firestore snapshot received. Docs:', querySnapshot.docs.length);
             const fetchedGames: GameData[] = [];
             querySnapshot.forEach((doc) => {
                 const data = doc.data() as DocumentData;
@@ -92,7 +87,6 @@
             isLoading = false;
             error = null;
         }, (e) => {
-            console.error("GameList: Error fetching games: ", e);
             error = "Failed to load games. Check Firestore rules and connection.";
             isLoading = false;
         });
