@@ -2,22 +2,20 @@
 	import { page } from "$app/state";
 	import {
 		Navbar, NavBrand, NavLi, NavUl, NavHamburger, Search, Avatar, Dropdown, DropdownHeader, DropdownGroup,
-		DropdownItem, DropdownDivider, Modal, Dropzone, Button, Progressbar, Spinner
+		DropdownItem, DropdownDivider, Modal, Dropzone, Button, Progressbar, Spinner, Badge
 	} from "flowbite-svelte";
 	import favicon from '$lib/assets/gamepad.ico';
 	import avatar from '$lib/assets/dummy-avatar.png';
 	import { DarkMode } from "flowbite-svelte";
 	import { signOut } from 'firebase/auth';
-	import { auth, user, db } from '$lib/firebase'; // Импортируем user store и db из firebase.ts
+	import { auth, user } from '$lib/firebase'; // user store
 	import { userSettings } from '$lib/stores/userSettings';
 	import { searchQuery } from '$lib/stores/searchQuery';
 	import { isGlobalSearch } from '$lib/stores/searchScope';
-	import { SearchOutline, ChevronDownOutline } from "flowbite-svelte-icons";
+	import { SearchOutline } from "flowbite-svelte-icons";
 	import { Toggle } from "flowbite-svelte";
-	import Papa from 'papaparse';
-	import { collection, doc, setDoc, updateDoc, arrayUnion, writeBatch } from 'firebase/firestore';
+	import { importGamesFromCsv } from '$lib/importer';
 	import { allGames } from '$lib/stores/allGames';
-	import { get } from "svelte/store";
 
 	let activeUrl = $derived(decodeURIComponent(page.url.pathname));
 	let activeClass = "text-orange bg-green-700 md:bg-transparent md:text-green-700 md:dark:text-white lg:dark:bg-orange-500 md:dark:bg-transparent";
@@ -56,158 +54,41 @@
 		await signOut(auth);
 	}
 
-	function getSlugFromUrl(url: string): string | null {
-		try {
-			const path = new URL(url).pathname;
-			const parts = path.split('/').filter(p => p);
-			if (parts.length > 0 && parts[0] === 'games') {
-				return parts[1];
-			}
-			return null;
-		} catch (e) {
-			return null;
-		}
-	}
-
-	function getRatingMapping(rating: string): { stars: number, isFavorite: boolean } {
-		switch (rating?.toLowerCase()) {
-			case 'exceptional': return { stars: 5, isFavorite: true };
-			case 'recommended': return { stars: 4, isFavorite: false };
-			case 'meh': return { stars: 3, isFavorite: false };
-			case 'skip': return { stars: 1, isFavorite: false };
-			default: return { stars: 0, isFavorite: false };
-		}
-	}
-
 	async function handleImport() {
-		const currentUser = get(user);
-		if (!filesInDropzone || filesInDropzone.length === 0 || !currentUser) {
-			importMessage = 'Error: User not logged in or no file selected.';
-			return;
-		}
+        if (!filesInDropzone || filesInDropzone.length === 0 || !$currentUser) {
+            importMessage = 'Error: User not logged in or no file selected.';
+            return;
+        }
 
-		isImporting = true;
-		importProgress = 0;
-		importMessage = 'Starting import...';
+        isImporting = true;
+        importMessage = 'Starting import...';
+        importProgress = 0;
+        totalGamesToImport = 0;
 
-		const file = filesInDropzone[0];
-		const fileContent = await file.text();
+        const file = filesInDropzone[0];
 
-		Papa.parse(fileContent, {
-			header: true,
-			skipEmptyLines: true,
-			complete: async (results) => {
-				const gamesFromCsv = results.data as any[];
-				totalGamesToImport = gamesFromCsv.length;
-				const batch = writeBatch(db);
-				const newCategories = new Set<string>();
-				const newTags = new Set<string>();
-
-				for (const [index, row] of gamesFromCsv.entries()) {
-					const slug = getSlugFromUrl(row.Url);
-					if (!slug) {
-						console.warn('Skipping row, invalid URL:', row.Url);
-						importProgress = index + 1;
-						continue;
-					}
-
-					importMessage = `[${index + 1}/${totalGamesToImport}] Searching for: ${row.Game}`;
-
-					// 1. Search game by slug to get its ID
-					const searchResponse = await fetch(`/api/search-game?q=${encodeURIComponent(slug)}`);
-					if (!searchResponse.ok) {
-						console.warn(`Could not find game with slug: ${slug}. Skipping.`);
-						importProgress = index + 1;
-						continue;
-					}
-					const searchResults = await searchResponse.json();
-					const gameFromSearch = searchResults[0];
-
-					if (!gameFromSearch || !gameFromSearch.id) {
-						console.warn(`No precise match for slug: ${slug}. Skipping.`);
-						importProgress = index + 1;
-						continue;
-					}
-
-					// Check for duplicates
-					if ($allGames.some(g => g.rawg_id === gameFromSearch.id)) {
-						console.log(`Game "${gameFromSearch.title}" already in library. Skipping.`);
-						importProgress = index + 1;
-						continue;
-					}
-
-					// 2. Get detailed game info
-					importMessage = `[${index + 1}/${totalGamesToImport}] Getting details for: ${gameFromSearch.title}`;
-					const detailsResponse = await fetch(`/api/game-details?id=${gameFromSearch.id}`);
-					const gameDetails = detailsResponse.ok ? await detailsResponse.json() : {};
-
-					// 3. Map data
-					const { stars, isFavorite } = getRatingMapping(row.Rating);
-					const gameTags = row.Rating ? [row.Rating] : [];
-
-					const newGame = {
-						userId: currentUser.uid,
-						rawg_id: gameFromSearch.id,
-						title: gameFromSearch.title,
-						year: gameFromSearch.year,
-						image_url: gameFromSearch.image_url,
-						genres: gameFromSearch.genres || [],
-						developer: gameDetails.developer || [],
-						publisher: gameDetails.publisher || [],
-						series: gameDetails.series || '',
-						status: row.Status || 'backlog',
-						date_added: new Date(row.Created),
-						user_rating: stars,
-						is_favorite: isFavorite,
-						user_note: row.Review || '',
-						play_time: 0,
-						markdown_content: '',
-						tags: gameTags
-					};
-
-					// 4. Add to batch
-					const gameRef = doc(collection(db, 'users', currentUser.uid, 'games'));
-					batch.set(gameRef, newGame);
-
-					// 5. Collect new categories and tags
-					if (row.Status && !$userSettings.categories.includes(row.Status)) {
-						newCategories.add(row.Status);
-					}
-					if (row.Rating && !$userSettings.tags.includes(row.Rating)) {
-						newTags.add(row.Rating);
-					}
-					
-					importProgress = index + 1;
-				}
-
-				// 6. Update user settings if needed
-				if (newCategories.size > 0 || newTags.size > 0) {
-					importMessage = 'Updating your categories and tags...';
-					const settingsRef = doc(db, 'users', currentUser.uid);
-					await updateDoc(settingsRef, {
-						categories: arrayUnion(...Array.from(newCategories)),
-						tags: arrayUnion(...Array.from(newTags))
-					});
-				}
-
-				// 7. Commit batch
-				importMessage = 'Saving games to your library...';
-				await batch.commit();
-
-				importMessage = 'Import complete!';
-				isImporting = false;
-				setTimeout(() => {
-					isImportModalOpen = false;
-					filesInDropzone = null;
-				}, 2000);
-			},
-			error: (error) => {
-				console.error("CSV parsing error:", error);
-				importMessage = `Error parsing CSV: ${error.message}`;
-				isImporting = false;
-			}
-		});
-	}
+        await importGamesFromCsv(file, $currentUser, {
+            onMessage: (msg) => {
+                importMessage = msg;
+            },
+            onProgress: (progress) => {
+                importProgress = progress.current;
+                totalGamesToImport = progress.total;
+            },
+            onComplete: (summary) => {
+                importMessage = `Import complete! Added: ${summary.added}, Skipped: ${summary.skipped}.`;
+                isImporting = false;
+                setTimeout(() => {
+                    isImportModalOpen = false;
+                    filesInDropzone = null;
+                }, 3000);
+            },
+            onError: (errMsg) => {
+                importMessage = errMsg;
+                isImporting = false;
+            }
+        });
+    }
 
 </script>
 
@@ -262,6 +143,7 @@
 		<NavUl class="mr-0" {activeUrl} classes={{ active: activeClass, nonActive: nonActiveClass }}>
 			<NavLi href="/notes">Notes</NavLi>
 		</NavUl>
+		{#if $allGames.length > 0}<Badge color="purple" class="ml-[-10px]">{$allGames.length} games</Badge>{/if}
 
 		<DarkMode size="lg" class="mr-5"/>
 
@@ -278,7 +160,10 @@
 			{#each $userSettings.categories as category (category)}
 				<NavLi href="/{category}">{category}</NavLi>
 			{/each}
-			<NavLi href="/notes">Notes</NavLi>
+			<div class="flex items-center">
+				<NavLi href="/notes">Notes</NavLi>
+				{#if $allGames.length > 0}<Badge color="purple" class="ml-2">{$allGames.length} games</Badge>{/if}
+			</div>
 			<div class="mt-2">
 				<!-- Поисковая строка с переключателем -->
 				<div class="flex items-center pl-10 md:order-2 w-full md:w-auto">

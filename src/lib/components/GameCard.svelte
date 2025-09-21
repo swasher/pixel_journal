@@ -18,6 +18,12 @@
     // Форматируем дату для отображения
     const formattedDate = game.date_added ? new Date(game.date_added).toLocaleDateString() : 'N/A';
 
+    function truncate(str: string | undefined | null, maxLength: number): string {
+        if (!str) return '';
+        if (str.length <= maxLength) return str;
+        return str.slice(0, maxLength) + '...';
+    }
+
 </script>
 
 <Card
@@ -46,18 +52,18 @@
                 {#if game.developer && game.developer.length > 0}
                     <TableBodyRow class={rowClass}>
                         <TableBodyCell class={headerCellClass}>Developer</TableBodyCell>
-                        <TableBodyCell class={dataCellClass}>{game.developer.join(', ')}</TableBodyCell>
+                        <TableBodyCell class={dataCellClass}>{truncate(game.developer.join(', '), 82)}</TableBodyCell>
                     </TableBodyRow>
                 {/if}
                 {#if game.publisher && game.publisher.length > 0}
                     <TableBodyRow class={rowClass}>
                         <TableBodyCell class={headerCellClass}>Publisher</TableBodyCell>
-                        <TableBodyCell class={dataCellClass}>{(Array.isArray(game.publisher)
+                        <TableBodyCell class={dataCellClass}>{truncate((Array.isArray(game.publisher)
 										? game.publisher
 										: (game.publisher === null || game.publisher === undefined)
 											? []
 											: [String(game.publisher)]
-								).join(', ')}</TableBodyCell>
+								).join(', '), 82)}</TableBodyCell>
                     </TableBodyRow>
                 {/if}
                 {#if game.genres && game.genres.length > 0}
