@@ -83,6 +83,18 @@
                     tags: data.tags || [] // Добавляем tags
                 });
             });
+
+            // Sort games: newest first (descending date_added)
+            fetchedGames.sort((a, b) => {
+                const dateA = a.date_added ? a.date_added.getTime() : 0;
+                const dateB = b.date_added ? b.date_added.getTime() : 0;
+                if (dateB !== dateA) {
+                    return dateB - dateA;
+                }
+                // Fallback to title if dates are equal or missing
+                return a.title.localeCompare(b.title);
+            });
+
             games = fetchedGames;
             isLoading = false;
             error = null;
