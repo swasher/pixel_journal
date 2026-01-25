@@ -2,15 +2,28 @@ import { writable } from 'svelte/store';
 import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { db, user } from '$lib/firebase';
 import type { User } from 'firebase/auth';
+import type { DataSource } from "$lib/data_sources";
 
 export interface UserSettings {
+    isReady: boolean; // Flag to indicate if settings have been loaded from Firestore
     categories: string[];
     tags: string[];
+    dataSource: DataSource;
+    rawgApiKey: string;
+    igdbClientId: string;
+    igdbClientSecret: string;
+    igdbAccessToken: string;
 }
 
 const defaultSettings: UserSettings = {
+    isReady: false,
     categories: ['Backlog', 'Completed', 'Abandoned', 'Rejected'],
-    tags: ['Шедевр', 'Надо перепройти']
+    tags: ['Шедевр', 'Надо перепройти'],
+    dataSource: 'rawg',
+    rawgApiKey: '',
+    igdbClientId: '',
+    igdbClientSecret: '',
+    igdbAccessToken: ''
 };
 
 const createUserSettingsStore = () => {
@@ -30,7 +43,7 @@ const createUserSettingsStore = () => {
             getDoc(userSettingsRef).then(async (docSnap) => { // make this async
                 if (!docSnap.exists()) {
                     console.log(`First login for user ${currentUser.uid}. Creating default settings and note...`);
-                    
+
                     // Create user settings doc
                     setDoc(userSettingsRef, defaultSettings).catch(error => {
                         console.error("Failed to create default settings:", error);
@@ -65,23 +78,34 @@ const createUserSettingsStore = () => {
 
             // Realtime listener for updates.
             unsubscribeFromFirestore = onSnapshot(userSettingsRef, (docSnap) => {
+                console.log('[userSettings store] Snapshot received.');
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    set({
+                    console.log('[userSettings store] Document data from Firestore:', data);
+                    const newSettings = {
+                        isReady: true,
                         categories: data.categories && data.categories.length > 0 ? data.categories : defaultSettings.categories,
-                        tags: data.tags || []
-                    });
+                        tags: data.tags || [],
+                        dataSource: data.dataSource || defaultSettings.dataSource,
+                        rawgApiKey: data.rawgApiKey || defaultSettings.rawgApiKey,
+                        igdbClientId: data.igdbClientId || defaultSettings.igdbClientId,
+                        igdbClientSecret: data.igdbClientSecret || defaultSettings.igdbClientSecret,
+                        igdbAccessToken: data.igdbAccessToken || defaultSettings.igdbAccessToken
+                    };
+                    console.log('[userSettings store] Setting new store value:', newSettings);
+                    set(newSettings);
                 } else {
                     // User's settings document has been deleted. Reset to default in the UI.
-                    set(defaultSettings);
+                    console.log('[userSettings store] Document does not exist. Setting ready with default settings.');
+                    set({ ...defaultSettings, isReady: true }); // Ready, but with default settings
                 }
             }, (error) => {
                 console.error("Error fetching user settings:", error);
-                set(defaultSettings);
+                set({ ...defaultSettings, isReady: true }); // Still ready, to not block the UI
             });
         } else {
             // User is logged out or not yet loaded
-            set(defaultSettings);
+            set(defaultSettings); // isReady is false in defaultSettings
         }
     });
 

@@ -1,36 +1,38 @@
-import { json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { RAWG_API_KEY } from '$env/static/private';
+import { getDetails as dispatchGetDetails, type DataSource } from '$lib/data_sources';
 
-const RAWG_API_URL = 'https://api.rawg.io/api';
-
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, request }) => {
     const gameId = url.searchParams.get('id');
+    const source = url.searchParams.get('source') as DataSource;
 
     if (!gameId) {
-        return json({ error: 'Game ID is required' }, { status: 400 });
+        throw error(400, 'Game ID (id) is required');
     }
 
-    try {
-        const response = await fetch(`${RAWG_API_URL}/games/${gameId}?key=${RAWG_API_KEY}`);
+    if (!source || !['rawg', 'igdb'].includes(source)) {
+        throw error(400, 'A valid data source (source=rawg or source=igdb) is required');
+    }
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Failed to fetch data from RAWG.io' }));
-            return json({ error: 'API request failed', details: errorData }, { status: response.status });
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        throw error(401, 'Authorization header with Bearer token (the API key) is required');
+    }
+    const apiKey = authHeader.split(' ')[1];
+    const igdbAccessToken = request.headers.get('X-IGDB-Access-Token');
+
+    try {
+        const authData = { accessToken: igdbAccessToken || '' };
+
+        const results = await dispatchGetDetails(source, gameId, apiKey, authData);
+        if (results) {
+            return json(results);
+        } else {
+            throw error(404, `Game with id ${gameId} not found in ${source}.`);
         }
 
-        const data = await response.json();
-
-        const gameDetails = {
-            developer: data.developers?.map((dev: any) => dev.name) || [],
-            publisher: data.publishers?.map((pub: any) => pub.name) || [],
-            series: data.series?.name || '',
-        };
-
-        return json(gameDetails);
-
-    } catch (error) {
-        console.error('Error fetching game details from RAWG.io:', error);
-        return json({ error: 'An internal error occurred' }, { status: 500 });
+    } catch (e: any) {
+        console.error(`Failed to get details for game ${gameId} from data source '${source}':`, e);
+        throw error(500, `An internal error occurred while getting details via ${source}: ${e.message}`);
     }
 };

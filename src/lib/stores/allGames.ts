@@ -5,7 +5,7 @@ import type { Unsubscribe } from 'firebase/auth';
 
 interface CachedGameInfo {
     firestoreId: string; // ID документа в Firestore
-    rawgId: number;      // ID игры из RAWG.io
+    rawg_id: number;      // ID игры из RAWG.io
     title: string;       // Название игры (для удобства)
     status: 'backlog' | 'completed' | 'rejected' | 'abandoned'; // Статус игры
 }
@@ -39,7 +39,7 @@ const unsubscribeFromAuth = user.subscribe(currentUser => {
                 const data = doc.data() as DocumentData;
                 fetchedGames.push({
                     firestoreId: doc.id,
-                    rawgId: data.rawg_id,
+                    rawg_id: data.rawg_id,
                     title: data.title,
                     status: data.status,
                 });

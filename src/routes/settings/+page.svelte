@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Heading, Label, Tags, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P } from 'flowbite-svelte';
+    import { Heading, Label, Tags, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P, Select } from 'flowbite-svelte';
     import { user, db, updateGameStatuses, auth } from '$lib/firebase';
     import { userSettings } from '$lib/stores/userSettings';
     import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc, query, collection, where, getDocs, writeBatch } from 'firebase/firestore';
@@ -23,12 +23,86 @@
     let isDeleteAccountModalOpen = $state(false);
     let deleteError = $state<string | null>(null);
 
+    // Create a local, editable copy of the settings for the forms
+    let localSettings = $state({ ...$userSettings });
+    $effect(() => {
+        // This effect keeps the local copy in sync if the store changes from elsewhere
+        localSettings = { ...$userSettings };
+    });
+
     // Tags are also part of the userSettings store, but the Tags component needs a writable variable.
     // This effect syncs the store value to a local state variable.
     let userTags = $state<string[]>([]);
     $effect(() => {
         userTags = $userSettings.tags;
     });
+
+    async function saveApiSettings() {
+        if (!$currentUser) {
+            alert('You must be logged in to save settings.');
+            return;
+        }
+        isLoading = true;
+        try {
+            const userSettingsRef = doc(db, 'users', $currentUser.uid);
+            // We only save the settings relevant to this form
+            const settingsToSave = {
+                dataSource: localSettings.dataSource,
+                rawgApiKey: localSettings.rawgApiKey,
+                igdbClientId: localSettings.igdbClientId,
+                igdbClientSecret: localSettings.igdbClientSecret
+            };
+            await setDoc(userSettingsRef, settingsToSave, { merge: true });
+            // Optionally, show a success message to the user
+            alert('API Settings saved!');
+        } catch (error) {
+            console.error("Error saving API settings: ", error);
+            alert('Failed to save API settings.');
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    async function getIgdbToken() {
+        if (!$currentUser) {
+            alert('You must be logged in.');
+            return;
+        }
+
+        const { igdbClientId, igdbClientSecret } = $userSettings;
+
+        if (!igdbClientId || !igdbClientSecret) {
+            alert('Please save your IGDB Client ID and Client Secret before getting a token.');
+            return;
+        }
+
+        isLoading = true;
+        try {
+            const response = await fetch('/api/auth/igdb', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clientId: igdbClientId, clientSecret: igdbClientSecret })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to get access token.');
+            }
+
+            const { access_token } = data;
+            const userSettingsRef = doc(db, 'users', $currentUser.uid);
+            await setDoc(userSettingsRef, { igdbAccessToken: access_token }, { merge: true });
+
+            alert(`Successfully received and saved new IGDB access token!`);
+
+        } catch (error: any) {
+            console.error("Error getting IGDB token: ", error);
+            alert(`Failed to get IGDB token: ${error.message}`);
+        } finally {
+            isLoading = false;
+        }
+    }
 
     async function saveTags() {
         if (!$currentUser) {
@@ -277,6 +351,41 @@
                     <Input type="text" bind:value={newCategory} placeholder="Enter new category name" class="flex-grow" required />
                     <Button type="submit" class="w-40" disabled={isLoading}>Add Category</Button>
                 </form>
+            </div>
+
+            <!-- Data Sources & API Keys Section -->
+            <div class="border-t dark:border-gray-700 pt-8 mt-8">
+                <Heading tag="h2" class="text-xl font-bold mb-2">Data Sources & API Keys</Heading>
+                <P class="text-gray-600 dark:text-gray-400 mb-4">
+                    Choose your preferred data source for fetching game information and provide your personal API keys.
+                </P>
+                <div class="space-y-4">
+                    <div>
+                        <Label for="data-source" class="block mb-2 font-medium">Data Source</Label>
+                        <Select id="data-source" bind:value={localSettings.dataSource}>
+                            <option value="rawg">RAWG.io</option>
+                            <option value="igdb">IGDB.com (Not Implemented)</option>
+                        </Select>
+                    </div>
+                    <div>
+                        <Label for="rawg-key" class="block mb-2 font-medium">RAWG.io API Key</Label>
+                        <Input id="rawg-key" type="password" placeholder="Enter your RAWG.io API key" bind:value={localSettings.rawgApiKey} />
+                    </div>
+                    <div>
+                        <Label for="igdb-client-id" class="block mb-2 font-medium">IGDB.com Client ID</Label>
+                        <Input id="igdb-client-id" type="password" placeholder="Enter your IGDB.com Client ID" bind:value={localSettings.igdbClientId} />
+                    </div>
+                    <div>
+                        <Label for="igdb-client-secret" class="block mb-2 font-medium">IGDB.com Client Secret</Label>
+                        <div class="flex items-center gap-2">
+                            <Input id="igdb-client-secret" type="password" placeholder="Enter your IGDB.com Client Secret" bind:value={localSettings.igdbClientSecret} class="flex-grow"/>
+                            <Button onclick={getIgdbToken} disabled={isLoading} outline>Get Access Token</Button>
+                        </div>
+                    </div>
+                </div>
+                 <div class="flex justify-end border-t dark:border-gray-700 pt-4 mt-4">
+                    <Button onclick={saveApiSettings} disabled={isLoading}>Save API Settings</Button>
+                </div>
             </div>
 
             <!-- Danger Zone -->

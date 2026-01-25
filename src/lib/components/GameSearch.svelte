@@ -4,6 +4,8 @@
 	import { addDoc, collection } from 'firebase/firestore';
 	import { allGames } from '$lib/stores/allGames';
 
+	import { searchGames, getGameDetails } from '$lib/apiClient';
+
 	    let { status } = $props<{ status: string }>();
 
 	interface GameSearchResult {
@@ -47,14 +49,7 @@
 		}
 		isLoading = true;
 		try {
-			const response = await fetch(`/api/search-game?q=${encodeURIComponent(query)}`);
-			const data = await response.json();
-			if (response.ok) {
-				searchResults = data;
-			} else {
-				console.error('Search error:', data.error || 'Unexpected response format');
-				searchResults = [];
-			}
+			searchResults = await searchGames(query);
 		} catch (error) {
 			console.error('Failed to fetch search results:', error);
 			searchResults = [];
@@ -71,23 +66,24 @@
             return;
         }
 
-		const existingGame = $allGames.find(g => g.rawgId === game.id);
+		const existingGame = $allGames.find(g => g.rawg_id === game.id);
 		if (existingGame) {
 			alert(`This game is already in your '${existingGame.status}' list.`);
 			showModal = false;
 			return;
 		}
 
-		let detailedGameData: GameDetailsResult = {};
+		let detailedGameData: GameDetailsResult | null = null;
 		try {
-			const detailsResponse = await fetch(`/api/game-details?id=${game.id}`);
-			if (detailsResponse.ok) {
-				detailedGameData = await detailsResponse.json();
-			} else {
-				console.error('Failed to fetch game details:', await detailsResponse.json());
-			}
+            detailedGameData = await getGameDetails(game.id);
+            if (!detailedGameData) {
+                throw new Error('Failed to fetch game details.');
+            }
 		} catch (error) {
 			console.error('Error fetching game details:', error);
+            // Decide if you want to proceed without details or show an error
+            alert('Could not fetch game details. Please try again.');
+            return;
 		}
 
 		try {
@@ -135,7 +131,7 @@
 	{:else if searchResults.length > 0}
 		<div class="grid grid-cols-2 gap-4 p-4 overflow-y-auto flex-grow">
 			{#each searchResults as game (game.id)}
-				{@const isGameAdded = $allGames.some(g => g.rawgId === game.id)}
+				{@const isGameAdded = $allGames.some(g => g.rawg_id === game.id)}
 				<Card img={game.image_url} horizontal size="sm"
 						onclick={isGameAdded ? undefined : () => handleAddGame(game)}
 							class="relative cursor-pointer hover:shadow-lg transition-shadow duration-200 {isGameAdded ? 'opacity-30 cursor-not-allowed' : ''}">

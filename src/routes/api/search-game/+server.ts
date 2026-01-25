@@ -1,38 +1,37 @@
-import { json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { RAWG_API_KEY } from '$env/static/private';
+import { search as dispatchSearch, type DataSource } from '$lib/data_sources';
 
-const RAWG_API_URL = 'https://api.rawg.io/api';
+export const GET: RequestHandler = async ({ url, request }) => {
+    console.log('[/api/search-game] Received request.');
+    const searchQuery = url.searchParams.get('q');
+    const source = url.searchParams.get('source') as DataSource;
 
-export const GET: RequestHandler = async ({ url }) => {
-	const searchQuery = url.searchParams.get('q');
+    if (!searchQuery) {
+        throw error(400, 'Search query (q) is required');
+    }
 
-	if (!searchQuery) {
-		return json({ error: 'Search query is required' }, { status: 400 });
-	}
+    if (!source || !['rawg', 'igdb'].includes(source)) {
+        throw error(400, 'A valid data source (source=rawg or source=igdb) is required');
+    }
 
-	try {
-		const response = await fetch(`${RAWG_API_URL}/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(searchQuery)}&page_size=20&search_precise=true&platforms=4`); // 4 = PC
+    const authHeader = request.headers.get('Authorization');
+    console.log(`[/api/search-game] Auth header: ${authHeader}`);
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        throw error(401, 'Authorization header with Bearer token (the API key) is required');
+    }
+    const apiKey = authHeader.split(' ')[1];
+    const igdbAccessToken = request.headers.get('X-IGDB-Access-Token');
+    console.log(`[/api/search-game] IGDB Access Token from header: ${igdbAccessToken}`);
 
-		if (!response.ok) {
-			const errorData = await response.json().catch(() => ({ message: 'Failed to fetch data from RAWG.io' }));
-			return json({ error: 'API request failed', details: errorData }, { status: response.status });
-		}
+    try {
+        const authData = { accessToken: igdbAccessToken || '' };
 
-		const data = await response.json();
+        const results = await dispatchSearch(source, searchQuery, apiKey, authData);
+        return json(results);
 
-		const games = data.results.map((game: any) => ({
-			id: game.id,
-			title: game.name,
-			year: game.released ? new Date(game.released).getFullYear() : null,
-			image_url: game.background_image,
-			genres: game.genres?.map((genre: any) => genre.name) || [],
-		}));
-
-		return json(games);
-
-	} catch (error) {
-		console.error('Error fetching from RAWG.io:', error);
-		return json({ error: 'An internal error occurred' }, { status: 500 });
-	}
+    } catch (e: any) {
+        console.error(`Failed to fetch from data source '${source}':`, e);
+        throw error(500, `An internal error occurred while searching via ${source}: ${e.message}`);
+    }
 };
