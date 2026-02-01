@@ -70,7 +70,8 @@
                         <Badge 
                             color={isSelected ? tagColor as any : 'dark'} 
                             rounded 
-                            class={isSelected ? 'ring-2 ring-offset-1 ring-offset-transparent' : 'opacity-60 hover:opacity-100'}
+                            border
+                            class="font-medium dark:text-white {isSelected ? 'ring-2 ring-offset-1 ring-offset-transparent' : 'opacity-60 hover:opacity-100'}"
                         >
                             {tag}
                         </Badge>
