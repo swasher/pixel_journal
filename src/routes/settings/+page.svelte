@@ -140,10 +140,29 @@
         if (!$currentUser) return;
 
         try {
-            const userSettingsRef = doc(db, 'users', $currentUser.uid);
-            await updateDoc(userSettingsRef, {
+            const batch = writeBatch(db);
+            const userRef = doc(db, 'users', $currentUser.uid);
+            
+            // 1. Remove tag from global settings
+            batch.update(userRef, {
                 tags: arrayRemove(tagToRemove)
             });
+
+            // 2. Find all games containing this tag and remove it
+            const gamesRef = collection(db, 'users', $currentUser.uid, 'games');
+            const q = query(gamesRef, where('tags', 'array-contains', tagToRemove));
+            const querySnapshot = await getDocs(q);
+
+            querySnapshot.forEach((doc) => {
+                const gameRef = doc.ref;
+                batch.update(gameRef, {
+                    tags: arrayRemove(tagToRemove)
+                });
+            });
+
+            // 3. Commit all changes atomically
+            await batch.commit();
+
         } catch (error) {
             console.error("Error removing tag: ", error);
             userTags = previousTags; // Revert on error
