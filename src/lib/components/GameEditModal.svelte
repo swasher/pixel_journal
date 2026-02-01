@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Modal, Label, Input, Button, Textarea, Toggle, Select, Tags } from 'flowbite-svelte';
+	import { Modal, Label, Input, Button, Textarea, Toggle, Select, Badge } from 'flowbite-svelte';
 	import { db, user } from '$lib/firebase';
 	import { doc, updateDoc, deleteDoc, getDoc } from 'firebase/firestore';
 	import DeleteConfirmationModal from '$lib/components/DeleteConfirmationModal.svelte';
@@ -65,6 +65,18 @@
 			onClose();
 		}
 	});
+
+	function toggleTag(tag: string) {
+		if (!editedGame.tags) {
+			editedGame.tags = [tag];
+			return;
+		}
+		if (editedGame.tags.includes(tag)) {
+			editedGame.tags = editedGame.tags.filter((t) => t !== tag);
+		} else {
+			editedGame.tags = [...editedGame.tags, tag];
+		}
+	}
 
 	async function handleSave(event: SubmitEvent) {
 		event.preventDefault(); // Теперь мы вызываем preventDefault здесь
@@ -158,15 +170,35 @@
 			</div>
 			<!-- Поле для тегов -->
 			<div class="md:col-span-2">
-				<Label for="game-tags" class="mb-1">Tags</Label>
-				<Tags
-					id="game-tags"
-					bind:value={editedGame.tags}
-					availableTags={availableTags}
-					allowNewTags={false}
-					showAvailableTags={true}
-					placeholder="Select tags..."
-				/>
+				<Label class="mb-2">Tags</Label>
+				<div
+					class="flex flex-wrap gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 min-h-[3rem]"
+				>
+					{#if availableTags.length > 0}
+						{#each availableTags as tag}
+							{@const isSelected = editedGame.tags?.includes(tag)}
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<div
+								onclick={() => toggleTag(tag)}
+								role="button"
+								tabindex="0"
+								class="cursor-pointer transition-transform active:scale-95"
+							>
+								<Badge
+									color={isSelected ? 'indigo' : 'dark'}
+									rounded
+									class="select-none {isSelected
+										? 'ring-1 ring-indigo-400 font-semibold'
+										: 'opacity-60 hover:opacity-100'}"
+								>
+									{tag}
+								</Badge>
+							</div>
+						{/each}
+					{:else}
+						<span class="text-sm text-gray-400 italic">No tags available. Add them in Settings.</span>
+					{/if}
+				</div>
 			</div>
 		</div>
 
