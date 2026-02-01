@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { Heading, Label, Tags, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P, Select } from 'flowbite-svelte';
+    import { Heading, Label, Tags, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P, Select, Tooltip } from 'flowbite-svelte';
     import { user, db, updateGameStatuses, auth } from '$lib/firebase';
     import { userSettings } from '$lib/stores/userSettings';
     import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc, query, collection, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
     import { deleteUser, GoogleAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
     import { goto } from '$app/navigation';
-    import { PenOutline, TrashBinOutline } from 'flowbite-svelte-icons';
+    import { PenOutline, TrashBinOutline, ChevronUpOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
     import DeleteConfirmationModal from '$lib/components/DeleteConfirmationModal.svelte';
     import RenameModal from '$lib/components/RenameModal.svelte';
     import DestructiveConfirmationModal from '$lib/components/DestructiveConfirmationModal.svelte';
@@ -368,31 +368,46 @@
                             {#each $userSettings.categories as category (category)}
                                 <TableBodyRow>
                                     <TableBodyCell class="font-medium">{category}</TableBodyCell>
-                                    <TableBodyCell class="text-right space-x-2">
-                                        <Button
-                                            size="xs"
-                                            color="alternative"
-                                            onclick={() => moveCategoryUp(category)}
-                                            disabled={$userSettings.categories.indexOf(category) === 0}
-                                        >
-                                            <svg class="w-4 h-4 me-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                                            </svg>
-                                            Up
-                                        </Button>
-                                        <Button
-                                            size="xs"
-                                            color="alternative"
-                                            onclick={() => moveCategoryDown(category)}
-                                            disabled={$userSettings.categories.indexOf(category) === $userSettings.categories.length - 1}
-                                        >
-                                            <svg class="w-4 h-4 me-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                            </svg>
-                                            Down
-                                        </Button>
-                                        <Button size="xs" color="alternative" onclick={() => openRenameModal(category)}> <PenOutline class="w-4 h-4 me-1"/> Rename</Button>
-                                        <Button size="xs" color="red" onclick={() => openDeleteModal(category)}> <TrashBinOutline class="w-4 h-4 me-1"/> Delete</Button>
+                                    <TableBodyCell class="text-right">
+                                        <div class="flex items-center justify-end gap-3">
+                                            <div class="flex items-center gap-1">
+                                                <Button
+                                                    size="xs"
+                                                    color="light"
+                                                    class="!p-2"
+                                                    onclick={() => moveCategoryUp(category)}
+                                                    disabled={$userSettings.categories.indexOf(category) === 0}
+                                                >
+                                                    <ChevronUpOutline class="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                </Button>
+                                                <Tooltip>Move Up</Tooltip>
+
+                                                <Button
+                                                    size="xs"
+                                                    color="light"
+                                                    class="!p-2"
+                                                    onclick={() => moveCategoryDown(category)}
+                                                    disabled={$userSettings.categories.indexOf(category) === $userSettings.categories.length - 1}
+                                                >
+                                                    <ChevronDownOutline class="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                                </Button>
+                                                <Tooltip>Move Down</Tooltip>
+                                            </div>
+
+                                            <div class="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
+
+                                            <div class="flex items-center gap-1">
+                                                <Button size="xs" color="light" class="!p-2" onclick={() => openRenameModal(category)}>
+                                                    <PenOutline class="w-4 h-4 text-gray-500 dark:text-gray-400"/>
+                                                </Button>
+                                                <Tooltip>Rename</Tooltip>
+                                                
+                                                <Button size="xs" color="red" class="!p-2" onclick={() => openDeleteModal(category)}>
+                                                    <TrashBinOutline class="w-4 h-4"/>
+                                                </Button>
+                                                <Tooltip>Delete</Tooltip>
+                                            </div>
+                                        </div>
                                     </TableBodyCell>
                                 </TableBodyRow>
                             {/each}
