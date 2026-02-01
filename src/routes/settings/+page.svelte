@@ -1,16 +1,17 @@
 <script lang="ts">
-    import { Heading, Label, Tags, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P, Select, Tooltip } from 'flowbite-svelte';
+    import { Heading, Label, Badge, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P, Select, Tooltip } from 'flowbite-svelte';
     import { user, db, updateGameStatuses, auth } from '$lib/firebase';
     import { userSettings } from '$lib/stores/userSettings';
     import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc, query, collection, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
     import { deleteUser, GoogleAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
     import { goto } from '$app/navigation';
-    import { PenOutline, TrashBinOutline, ChevronUpOutline, ChevronDownOutline } from 'flowbite-svelte-icons';
+    import { PenOutline, TrashBinOutline, ChevronUpOutline, ChevronDownOutline, PlusOutline } from 'flowbite-svelte-icons';
     import DeleteConfirmationModal from '$lib/components/DeleteConfirmationModal.svelte';
     import RenameModal from '$lib/components/RenameModal.svelte';
     import DestructiveConfirmationModal from '$lib/components/DestructiveConfirmationModal.svelte';
 
     let newCategory = $state('');
+    let newTagInput = $state(''); // State for new tag input
     let isLoading = $state(false);
     const currentUser = $derived(user);
 
@@ -104,19 +105,49 @@
         }
     }
 
-    async function saveTags() {
-        if (!$currentUser) {
-            alert('You must be logged in to save settings.');
+    async function addTag() {
+        const tag = newTagInput.trim();
+        if (!tag) return;
+        if (userTags.includes(tag)) {
+            alert('Tag already exists');
             return;
         }
-        isLoading = true;
+
+        // Optimistic UI update
+        const previousTags = [...userTags];
+        userTags = [...userTags, tag];
+        newTagInput = '';
+        
+        if (!$currentUser) return;
+
         try {
             const userSettingsRef = doc(db, 'users', $currentUser.uid);
-            await setDoc(userSettingsRef, { tags: userTags }, { merge: true });
+            await updateDoc(userSettingsRef, {
+                tags: arrayUnion(tag)
+            });
         } catch (error) {
-            console.error("Error saving tags: ", error);
-        } finally {
-            isLoading = false;
+            console.error("Error adding tag: ", error);
+            userTags = previousTags; // Revert on error
+            alert('Failed to add tag');
+        }
+    }
+
+    async function removeTag(tagToRemove: string) {
+        // Optimistic UI update
+        const previousTags = [...userTags];
+        userTags = userTags.filter(tag => tag !== tagToRemove);
+
+        if (!$currentUser) return;
+
+        try {
+            const userSettingsRef = doc(db, 'users', $currentUser.uid);
+            await updateDoc(userSettingsRef, {
+                tags: arrayRemove(tagToRemove)
+            });
+        } catch (error) {
+            console.error("Error removing tag: ", error);
+            userTags = previousTags; // Revert on error
+            alert('Failed to remove tag');
         }
     }
 
@@ -343,11 +374,26 @@
             <div>
                 <Label for="user-tags" class="block mb-2 text-lg font-semibold">Your Custom Tags</Label>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Add or remove tags that you can later assign to your games. Press Enter to add a tag.
+                    Add or remove tags that you can later assign to your games.
                 </p>
-                <Tags id="user-tags" bind:value={userTags} unique={true} placeholder="Add a new tag..." />
-                <div class="flex justify-end border-t dark:border-gray-700 pt-4 mt-4">
-                    <Button onclick={saveTags} disabled={isLoading}>Save Tags</Button>
+                
+                <form onsubmit={(e) => { e.preventDefault(); addTag(); }} class="flex gap-2 mb-4">
+                     <Input id="new-tag" bind:value={newTagInput} placeholder="Enter a new tag" class="flex-grow" />
+                     <Button type="submit" color="alternative" class="w-12 !p-2">
+                        <PlusOutline class="w-5 h-5"/>
+                     </Button>
+                </form>
+
+                <div class="flex flex-wrap gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 min-h-[4rem] content-start">
+                     {#if userTags.length > 0}
+                        {#each userTags as tag}
+                            <Badge dismissable color="indigo" rounded onclose={() => removeTag(tag)}>
+                                {tag}
+                            </Badge>
+                        {/each}
+                     {:else}
+                        <span class="text-sm text-gray-400 italic">No tags created yet.</span>
+                     {/if}
                 </div>
             </div>
 
