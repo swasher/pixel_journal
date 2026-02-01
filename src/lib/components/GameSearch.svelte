@@ -7,7 +7,11 @@
 
 	import { searchGames, getGameDetails } from '$lib/apiClient';
 
-	    let { status } = $props<{ status: string }>();
+	let { status, gameToLink = null, onLinkSuccess = null } = $props<{
+        status: string;
+        gameToLink?: any;
+        onLinkSuccess?: (id: number, source: string) => void;
+    }>();
 
 	interface GameSearchResult {
 		id: number;
@@ -24,9 +28,18 @@
 	}
 
 	let showModal = $state(false);
-	let searchQuery = $state('');
+	let searchQuery = $state(gameToLink?.title || '');
 	let searchResults = $state<GameSearchResult[]>([]);
 	let isLoading = $state(false);
+
+    // Open modal automatically and search if gameToLink is provided
+    $effect(() => {
+        if (gameToLink) {
+            showModal = true;
+            searchQuery = gameToLink.title;
+            performSearch(searchQuery);
+        }
+    });
 
 	// Эффект для выполнения поиска с дебаунсингом (задержкой)
 	$effect(() => {
@@ -64,11 +77,18 @@
         const source = $userSettings.dataSource || 'rawg';
 
         if (!user || !user.uid) {
-            alert("You must be logged in to add a game.");
+            alert("You must be logged in.");
             return;
         }
 
-		// Check duplicates in either field
+        // LINK MODE: Just return the ID and source
+        if (gameToLink && onLinkSuccess) {
+            onLinkSuccess(game.id, source);
+            showModal = false;
+            return;
+        }
+
+		// Check duplicates (only for new games)
 		const existingGame = $allGames.find(g => 
 			(source === 'rawg' && g.rawg_id === game.id) || 
 			(source === 'igdb' && g.igdb_id === game.id)
@@ -127,11 +147,16 @@
 
 
 <div class="flex justify-between items-center mb-4">
-	<Heading tag="h1" class="capitalize">{status}</Heading>
-	<Button onclick={() => showModal = true}>ADD GAME</Button>
+    {#if !gameToLink}
+	    <Heading tag="h1" class="capitalize">{status}</Heading>
+	    <Button onclick={() => showModal = true}>ADD GAME</Button>
+    {/if}
 </div>
 
-<Modal title="Add a new game" bind:open={showModal} class="w-full max-w-4xl h-[80vh] flex flex-col">
+<Modal title={gameToLink ? `Link "${gameToLink.title}" to ${$userSettings.dataSource?.toUpperCase()}` : "Add a new game"} 
+       bind:open={showModal} 
+       onclose={() => { if(gameToLink && onLinkSuccess) onLinkSuccess(0, ''); }}
+       class="w-full max-w-4xl h-[80vh] flex flex-col">
 	<div class="p-4 border-b dark:border-gray-700">
 		<Label for="game-name" class="mb-2 sr-only">Game Name</Label>
 		<Input id="game-name" type="text" placeholder="Search for a game..." required bind:value={searchQuery}

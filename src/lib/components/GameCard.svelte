@@ -8,6 +8,7 @@
     import { db, user } from "$lib/firebase";
     import { doc, updateDoc } from "firebase/firestore";
     import { getGameDetails } from "$lib/apiClient";
+    import GameSearch from "./GameSearch.svelte";
 
     let { game, onEdit } = $props<{
         game: GameData;
@@ -15,6 +16,7 @@
     }>();
 
     let isSyncing = $state(false);
+    let showLinkModal = $state(false);
 
     // Классы для стилизации таблицы для уменьшения дублирования в разметке
     const rowClass = "bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600";
@@ -30,18 +32,19 @@
         return str.slice(0, maxLength) + '...';
     }
 
-    async function syncGameData(e: MouseEvent) {
-        e.stopPropagation();
+    async function syncGameData(e?: MouseEvent) {
+        if (e) e.stopPropagation();
         if (isSyncing || !$user) return;
 
         // 1. Use the CURRENT source from global settings
         const targetSource = $userSettings.dataSource || 'rawg';
         
-        // 2. Find the ID for this source. For legacy games without source, we still look at rawg_id.
+        // 2. Find the ID for this source.
         let targetId: number | undefined = targetSource === 'rawg' ? game.rawg_id : game.igdb_id;
 
         if (!targetId) {
-            alert(`No ${targetSource.toUpperCase()} ID found for this game. You might need to re-link or re-add it using ${targetSource.toUpperCase()}.`);
+            // Smart Linking: Open search instead of alert
+            showLinkModal = true;
             return;
         }
 
@@ -59,7 +62,6 @@
                 developer: details.developer || [],
                 publisher: details.publisher || [],
                 series: details.series || '',
-                // Update the source to the one we just used
                 source: targetSource
             };
 
@@ -74,7 +76,38 @@
         }
     }
 
+    async function handleLinkSuccess(externalId: number, source: string) {
+        showLinkModal = false;
+        if (!externalId || !$user) return;
+
+        try {
+            const gameRef = doc(db, 'users', $user.uid, 'games', game.id);
+            const updateData: any = {
+                source: source
+            };
+            if (source === 'rawg') updateData.rawg_id = externalId;
+            else if (source === 'igdb') updateData.igdb_id = externalId;
+
+            await updateDoc(gameRef, updateData);
+            
+            // Now that we have the ID, run sync automatically
+            setTimeout(() => syncGameData(), 100);
+
+        } catch (error) {
+            console.error("Error linking game:", error);
+            alert("Failed to link game.");
+        }
+    }
+
 </script>
+
+{#if showLinkModal}
+    <GameSearch 
+        status={game.status} 
+        gameToLink={game} 
+        onLinkSuccess={handleLinkSuccess} 
+    />
+{/if}
 
 <Card
     img={game.image_url || 'https://via.placeholder.com/128x128?text=No+Image'}
@@ -85,9 +118,21 @@
 >
     <div class="flex flex-col p-4 leading-normal flex-grow">
         <div class="flex items-baseline gap-2 mb-2">
-            <h5 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                {game.title} ({game.year || 'N/A'})
+<!--            <h5 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                {game.title}  <Badge class="text-[12px] opacity-90 ">{game.year || 'N/A'}</Badge>
+                &lt;!&ndash;({game.year || 'N/A'})&ndash;&gt;
+            </h5>-->
+
+            <h5 class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
+                <span>{game.title}</span>
+<!--
+                <Badge class="text-[14px] opacity-90 align-middle bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">{game.year || 'N/A'}</Badge>
+-->
+                <Badge color="gray" class="text-[13px] font-medium px-2 py-0.5 rounded-md align-middle opacity-90 tracking-wide">
+                    {game.year || 'N/A'}
+                </Badge>
             </h5>
+
             {#if game.tags && game.tags.length > 0}
                 <div class="flex flex-wrap gap-1">
                     {#each game.tags as tag (tag)}
