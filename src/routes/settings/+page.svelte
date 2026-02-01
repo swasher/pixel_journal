@@ -364,7 +364,7 @@
                         <Label for="data-source" class="block mb-2 font-medium">Data Source</Label>
                         <Select id="data-source" bind:value={localSettings.dataSource}>
                             <option value="rawg">RAWG.io</option>
-                            <option value="igdb">IGDB.com (Not Implemented)</option>
+                            <option value="igdb">IGDB.com</option>
                         </Select>
                     </div>
                     <div>

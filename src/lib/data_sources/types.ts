@@ -23,6 +23,6 @@ export interface GameDetailsResult {
  * Defines the interface that every data source provider must implement.
  */
 export interface IGameDataProvider {
-    search(query: string, apiKey: string): Promise<GameSearchResult[]>;
+    search(query: string, apiKey: string, authData?: { [key: string]: any }): Promise<GameSearchResult[]>;
     getDetails(gameId: string, apiKey: string, authData?: { [key: string]: any }): Promise<GameDetailsResult | null>;
 }

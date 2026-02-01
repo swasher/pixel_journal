@@ -1,7 +1,5 @@
 import type { IGameDataProvider, GameSearchResult, GameDetailsResult } from "./types";
 
-import type { IGameDataProvider, GameSearchResult, GameDetailsResult } from "./types";
-
 const IGDB_API_URL = 'https://api.igdb.com/v4/games';
 
 class IgdbProvider implements IGameDataProvider {
@@ -14,7 +12,7 @@ class IgdbProvider implements IGameDataProvider {
             return [];
         }
 
-        const body = `search "${query}"; fields name, first_release_date, cover.url; limit 20;`;
+        const body = `search "${query}"; fields name, first_release_date, cover.url, genres.name; limit 20;`;
 
         try {
             const response = await fetch(IGDB_API_URL, {
@@ -41,7 +39,9 @@ class IgdbProvider implements IGameDataProvider {
                 title: game.name,
                 year: game.first_release_date ? new Date(game.first_release_date * 1000).getFullYear() : null,
                 // IGDB image URLs need modification for better quality
-                image_url: game.cover?.url ? game.cover.url.replace('t_thumb', 't_cover_big') : ''
+                image_url: game.cover?.url ? game.cover.url.replace('t_thumb', 't_cover_big') : '',
+                // Extract genre names from the genres array
+                genres: game.genres?.map((genre: any) => genre.name) || []
             }));
 
             return games;
@@ -53,21 +53,72 @@ class IgdbProvider implements IGameDataProvider {
     }
 
     async getDetails(gameId: string, apiKey: string, authData?: { [key: string]: any }): Promise<GameDetailsResult | null> {
-        console.log("IGDB getDetails called for gameId:", gameId, "(NOT IMPLEMENTED)");
+        console.log("IGDB getDetails called for gameId:", gameId);
         console.log("AuthData received:", authData);
 
-        // IGDB requires an access token which we would get from authData
-        if (!authData?.accessToken) {
-            console.error("IGDB provider requires an access token.");
-            return Promise.resolve(null);
+        const accessToken = authData?.accessToken;
+        if (!accessToken) {
+            console.error("IGDB getDetails requires an access token.");
+            return null;
         }
 
-        // For now, return mock details
-        return Promise.resolve({
-            developer: ['Mock IGDB Dev'],
-            publisher: ['Mock IGDB Pub'],
-            series: 'Mock Series'
-        });
+        // IGDB API endpoint for games
+        const IGDB_GAMES_URL = 'https://api.igdb.com/v4/games';
+
+        // Query to get detailed information about the specific game
+        // We need to get involved companies (for developers/publishers) and collection (for series)
+        const body = `fields involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name; where id = ${gameId};`;
+
+        try {
+            const response = await fetch(IGDB_GAMES_URL, {
+                method: 'POST',
+                headers: {
+                    'Client-ID': apiKey,
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Accept': 'application/json'
+                },
+                body: body
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`IGDB details fetch failed with status: ${response.status}`, errorText);
+                return null;
+            }
+
+            const data = await response.json();
+
+            if (!data || data.length === 0) {
+                console.log(`No details found for game ID: ${gameId}`);
+                return null;
+            }
+
+            const game = data[0];
+
+            // Extract developer and publisher info from involved companies
+            const developers = game.involved_companies
+                ?.filter((company: any) => company.developer === true)
+                .map((company: any) => company.company.name) || [];
+
+            const publishers = game.involved_companies
+                ?.filter((company: any) => company.publisher === true)
+                .map((company: any) => company.company.name) || [];
+
+            // Extract series information (using collection field in IGDB)
+            const series = game.collection?.name || '';
+
+            const gameDetails: GameDetailsResult = {
+                developer: developers,
+                publisher: publishers,
+                series: series
+            };
+
+            return gameDetails;
+
+        } catch (error) {
+            console.error("Error during IGDB getDetails:", error);
+            return null;
+        }
     }
 }
 

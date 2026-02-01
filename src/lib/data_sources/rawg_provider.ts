@@ -3,7 +3,7 @@ import type { IGameDataProvider, GameSearchResult, GameDetailsResult } from "./t
 const RAWG_API_URL = 'https://api.rawg.io/api';
 
 class RawgProvider implements IGameDataProvider {
-    async search(query: string, apiKey: string): Promise<GameSearchResult[]> {
+    async search(query: string, apiKey: string, authData?: { [key: string]: any }): Promise<GameSearchResult[]> {
         if (!query || !apiKey) {
             return [];
         }
