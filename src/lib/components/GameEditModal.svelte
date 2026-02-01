@@ -5,6 +5,7 @@
 	import DeleteConfirmationModal from '$lib/components/DeleteConfirmationModal.svelte';
 	import ClickableRating from './ClickableRating.svelte';
     import type { GameData } from "$lib/types";
+    import { userSettings } from "$lib/stores/userSettings";
 
 	let { game, onClose } = $props<{ game: GameData; onClose: () => void }>();
 
@@ -177,6 +178,7 @@
 					{#if availableTags.length > 0}
 						{#each availableTags as tag}
 							{@const isSelected = editedGame.tags?.includes(tag)}
+                            {@const tagColor = $userSettings.tagColors?.[tag] || 'indigo'}
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
 							<div
 								onclick={() => toggleTag(tag)}
@@ -185,11 +187,11 @@
 								class="cursor-pointer transition-transform active:scale-95"
 							>
 								<Badge
-									color={isSelected ? 'indigo' : 'dark'}
+									color={isSelected ? tagColor as any : 'dark'}
 									rounded
 									class="select-none {isSelected
-										? 'ring-1 ring-indigo-400 font-semibold'
-										: 'opacity-60 hover:opacity-100'}"
+										? 'font-semibold ring-2 ring-offset-1 ring-offset-transparent'
+										: 'opacity-50 hover:opacity-100'}"
 								>
 									{tag}
 								</Badge>

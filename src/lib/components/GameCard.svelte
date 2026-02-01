@@ -4,6 +4,7 @@
     import { GradientButton  } from "flowbite-svelte";
 		import { Rating } from "flowbite-svelte";
     import type { GameData } from "$lib/types";
+    import { userSettings } from "$lib/stores/userSettings";
 
     let { game, onEdit } = $props<{
         game: GameData;
@@ -41,7 +42,7 @@
             {#if game.tags && game.tags.length > 0}
                 <div class="flex flex-wrap gap-1">
                     {#each game.tags as tag (tag)}
-                        <Badge color="indigo" class="text-xs">{tag}</Badge>
+                        <Badge color={$userSettings.tagColors?.[tag] as any || 'indigo'} class="text-xs">{tag}</Badge>
                     {/each}
                 </div>
             {/if}

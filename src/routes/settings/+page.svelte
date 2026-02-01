@@ -2,27 +2,49 @@
     import { Heading, Label, Badge, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P, Select, Tooltip } from 'flowbite-svelte';
     import { user, db, updateGameStatuses, auth } from '$lib/firebase';
     import { userSettings } from '$lib/stores/userSettings';
-    import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc, query, collection, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
+    import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc, query, collection, where, getDocs, getDoc, writeBatch, deleteField } from 'firebase/firestore'; 
     import { deleteUser, GoogleAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
     import { goto } from '$app/navigation';
     import { PenOutline, TrashBinOutline, ChevronUpOutline, ChevronDownOutline, PlusOutline } from 'flowbite-svelte-icons';
     import DeleteConfirmationModal from '$lib/components/DeleteConfirmationModal.svelte';
     import RenameModal from '$lib/components/RenameModal.svelte';
+    import TagEditModal from '$lib/components/TagEditModal.svelte';
     import DestructiveConfirmationModal from '$lib/components/DestructiveConfirmationModal.svelte';
 
     let newCategory = $state('');
-    let newTagInput = $state(''); // State for new tag input
+    let newTagInput = $state(''); 
+    let newTagColor = $state('indigo'); // Default color
     let isLoading = $state(false);
     const currentUser = $derived(user);
 
     let isDeleteModalOpen = $state(false);
     let categoryToDelete = $state<string | null>(null);
+    
+    // Tag deletion/editing state
+    let isTagDeleteModalOpen = $state(false);
+    let tagToDelete = $state<string | null>(null);
+    
+    let isTagEditModalOpen = $state(false);
+    let tagToEditName = $state('');
+    let tagToEditColor = $state('indigo');
+    let oldTagName = $state(''); // Keep track of the original name for renaming logic
 
     let isRenameModalOpen = $state(false);
     let categoryToRename = $state<string | null>(null);
 
     let isDeleteAccountModalOpen = $state(false);
     let deleteError = $state<string | null>(null);
+
+    const availableColors = [
+        { value: 'indigo', name: 'Indigo' },
+        { value: 'blue', name: 'Blue' },
+        { value: 'red', name: 'Red' },
+        { value: 'green', name: 'Green' },
+        { value: 'yellow', name: 'Yellow' },
+        { value: 'purple', name: 'Purple' },
+        { value: 'pink', name: 'Pink' },
+        { value: 'dark', name: 'Dark' }
+    ];
 
     // Create a local, editable copy of the settings for the forms
     let localSettings = $state({ ...$userSettings });
@@ -31,12 +53,146 @@
         localSettings = { ...$userSettings };
     });
 
-    // Tags are also part of the userSettings store, but the Tags component needs a writable variable.
-    // This effect syncs the store value to a local state variable.
-    let userTags = $state<string[]>([]);
-    $effect(() => {
-        userTags = $userSettings.tags;
-    });
+    // Use derived state for tags directly from the store
+    let userTags = $derived($userSettings.tags || []);
+
+    function openEditTagModal(tag: string) {
+        oldTagName = tag;
+        tagToEditName = tag;
+        // Get current color or default to indigo
+        tagToEditColor = ($userSettings.tagColors && $userSettings.tagColors[tag]) || 'indigo';
+        isTagEditModalOpen = true;
+    }
+
+    async function handleEditTag(newName: string, newColor: string) {
+        if (!oldTagName || !$currentUser) return;
+        
+        // Optimistic close
+        isTagEditModalOpen = false;
+
+        try {
+            const batch = writeBatch(db);
+            const userRef = doc(db, 'users', $currentUser.uid);
+
+            // Case 1: Only color changed
+            if (newName === oldTagName) {
+                 batch.update(userRef, {
+                    [`tagColors.${oldTagName}`]: newColor
+                 });
+                 await batch.commit();
+                 return;
+            }
+
+            // Case 2: Renaming (Complex)
+            if (userTags.includes(newName)) {
+                alert('Tag with this name already exists!');
+                return;
+            }
+
+            // 1. Update Global Settings: Add new, Remove old
+            batch.update(userRef, {
+                tags: arrayUnion(newName),
+                [`tagColors.${newName}`]: newColor,
+            });
+            batch.update(userRef, {
+                tags: arrayRemove(oldTagName),
+                [`tagColors.${oldTagName}`]: deleteField()
+            });
+
+            // 2. Migrate Games
+            const gamesRef = collection(db, 'users', $currentUser.uid, 'games');
+            const q = query(gamesRef, where('tags', 'array-contains', oldTagName));
+            const querySnapshot = await getDocs(q);
+
+            querySnapshot.forEach((doc) => {
+                const gameRef = doc.ref;
+                batch.update(gameRef, {
+                    tags: arrayRemove(oldTagName)
+                });
+                 batch.update(gameRef, {
+                    tags: arrayUnion(newName)
+                });
+            });
+
+            await batch.commit();
+
+        } catch (error) {
+            console.error("Error editing tag: ", error);
+            alert("Failed to edit tag");
+        }
+    }
+
+    async function addTag() {
+        const tag = newTagInput.trim();
+        if (!tag) return;
+        if (userTags.includes(tag)) {
+            alert('Tag already exists');
+            return;
+        }
+
+        const color = newTagColor;
+        
+        // Clear inputs immediately
+        newTagInput = '';
+        newTagColor = 'indigo'; 
+        
+        if (!$currentUser) return;
+
+        try {
+            const userSettingsRef = doc(db, 'users', $currentUser.uid);
+            await updateDoc(userSettingsRef, {
+                tags: arrayUnion(tag),
+                [`tagColors.${tag}`]: color
+            });
+        } catch (error) {
+            console.error("Error adding tag: ", error);
+            alert('Failed to add tag');
+        }
+    }
+
+    function openDeleteTagModal(tag: string) {
+        tagToDelete = tag;
+        isTagDeleteModalOpen = true;
+    }
+
+    async function confirmDeleteTag() {
+        if (!tagToDelete || !$currentUser) return;
+        
+        const tagToRemove = tagToDelete; 
+
+        try {
+            const batch = writeBatch(db);
+            const userRef = doc(db, 'users', $currentUser.uid);
+            
+            // 1. Remove tag from global settings array AND the color map
+            batch.update(userRef, {
+                tags: arrayRemove(tagToRemove),
+                [`tagColors.${tagToRemove}`]: deleteField()
+            });
+
+            // 2. Find all games containing this tag and remove it
+            const gamesRef = collection(db, 'users', $currentUser.uid, 'games');
+            const q = query(gamesRef, where('tags', 'array-contains', tagToRemove));
+            const querySnapshot = await getDocs(q);
+
+            querySnapshot.forEach((doc) => {
+                const gameRef = doc.ref;
+                batch.update(gameRef, {
+                    tags: arrayRemove(tagToRemove)
+                });
+            });
+
+            // 3. Commit all changes atomically
+            await batch.commit();
+            
+            isTagDeleteModalOpen = false;
+            tagToDelete = null;
+
+        } catch (error) {
+            console.error("Error removing tag: ", error);
+            alert('Failed to remove tag');
+        }
+    }
 
     async function saveApiSettings() {
         if (!$currentUser) {
@@ -46,7 +202,6 @@
         isLoading = true;
         try {
             const userSettingsRef = doc(db, 'users', $currentUser.uid);
-            // We only save the settings relevant to this form
             const settingsToSave = {
                 dataSource: localSettings.dataSource,
                 rawgApiKey: localSettings.rawgApiKey,
@@ -54,7 +209,6 @@
                 igdbClientSecret: localSettings.igdbClientSecret
             };
             await setDoc(userSettingsRef, settingsToSave, { merge: true });
-            // Optionally, show a success message to the user
             alert('API Settings saved!');
         } catch (error) {
             console.error("Error saving API settings: ", error);
@@ -102,71 +256,6 @@
             alert(`Failed to get IGDB token: ${error.message}`);
         } finally {
             isLoading = false;
-        }
-    }
-
-    async function addTag() {
-        const tag = newTagInput.trim();
-        if (!tag) return;
-        if (userTags.includes(tag)) {
-            alert('Tag already exists');
-            return;
-        }
-
-        // Optimistic UI update
-        const previousTags = [...userTags];
-        userTags = [...userTags, tag];
-        newTagInput = '';
-        
-        if (!$currentUser) return;
-
-        try {
-            const userSettingsRef = doc(db, 'users', $currentUser.uid);
-            await updateDoc(userSettingsRef, {
-                tags: arrayUnion(tag)
-            });
-        } catch (error) {
-            console.error("Error adding tag: ", error);
-            userTags = previousTags; // Revert on error
-            alert('Failed to add tag');
-        }
-    }
-
-    async function removeTag(tagToRemove: string) {
-        // Optimistic UI update
-        const previousTags = [...userTags];
-        userTags = userTags.filter(tag => tag !== tagToRemove);
-
-        if (!$currentUser) return;
-
-        try {
-            const batch = writeBatch(db);
-            const userRef = doc(db, 'users', $currentUser.uid);
-            
-            // 1. Remove tag from global settings
-            batch.update(userRef, {
-                tags: arrayRemove(tagToRemove)
-            });
-
-            // 2. Find all games containing this tag and remove it
-            const gamesRef = collection(db, 'users', $currentUser.uid, 'games');
-            const q = query(gamesRef, where('tags', 'array-contains', tagToRemove));
-            const querySnapshot = await getDocs(q);
-
-            querySnapshot.forEach((doc) => {
-                const gameRef = doc.ref;
-                batch.update(gameRef, {
-                    tags: arrayRemove(tagToRemove)
-                });
-            });
-
-            // 3. Commit all changes atomically
-            await batch.commit();
-
-        } catch (error) {
-            console.error("Error removing tag: ", error);
-            userTags = previousTags; // Revert on error
-            alert('Failed to remove tag');
         }
     }
 
@@ -257,12 +346,11 @@
         const userSettingsDoc = await getDoc(userSettingsRef);
         const userData = userSettingsDoc.data();
 
-        const categories = [...userData.categories]; // Create a copy of the array
+        const categories = [...userData.categories]; 
         const currentIndex = categories.indexOf(categoryName);
 
-        if (currentIndex <= 0) return; // Already at the top or not found
+        if (currentIndex <= 0) return; 
 
-        // Swap with the previous element
         [categories[currentIndex], categories[currentIndex - 1]] =
         [categories[currentIndex - 1], categories[currentIndex]];
 
@@ -276,12 +364,11 @@
         const userSettingsDoc = await getDoc(userSettingsRef);
         const userData = userSettingsDoc.data();
 
-        const categories = [...userData.categories]; // Create a copy of the array
+        const categories = [...userData.categories]; 
         const currentIndex = categories.indexOf(categoryName);
 
-        if (currentIndex === -1 || currentIndex >= categories.length - 1) return; // Not found or already at the bottom
+        if (currentIndex === -1 || currentIndex >= categories.length - 1) return; 
 
-        // Swap with the next element
         [categories[currentIndex], categories[currentIndex + 1]] =
         [categories[currentIndex + 1], categories[currentIndex]];
 
@@ -289,7 +376,7 @@
     }
 
     function openDeleteAccountModal() {
-        deleteError = null; // Clear previous errors on open
+        deleteError = null; 
         isDeleteAccountModalOpen = true;
     }
 
@@ -300,11 +387,7 @@
         deleteError = null;
         const userId = $currentUser.uid;
 
-        // The new cleanup logic for the nested structure
         const cleanupUserData = async () => {
-            console.log(`Starting data cleanup for user: ${userId}`);
-
-            // Helper function to delete all documents in a collection in batches
             const deleteCollection = async (collRef: any) => {
                 const snapshot = await getDocs(collRef);
                 if (snapshot.empty) return 0;
@@ -319,65 +402,39 @@
                 return snapshot.size;
             }
 
-            // 1. Delete all games
-            const gamesDeleted = await deleteCollection(collection(db, 'users', userId, 'games'));
-            console.log(`Deleted ${gamesDeleted} games.`);
-
-            // 2. Delete all articles
-            const articlesDeleted = await deleteCollection(collection(db, 'users', userId, 'articles'));
-            console.log(`Deleted ${articlesDeleted} articles.`);
+            await deleteCollection(collection(db, 'users', userId, 'games'));
+            await deleteCollection(collection(db, 'users', userId, 'articles'));
             
-            // 3. Delete user settings document
-            console.log(`Starting deletion of user document for user: ${userId}`);
             const userDocRef = doc(db, 'users', userId);
             await deleteDoc(userDocRef);
-
-            console.log('User data cleanup complete.');
         };
 
         try {
-            // Step 1: Clean up all user data from Firestore
             await cleanupUserData();
-
-            // Step 2: Delete the user account from Firebase Auth
             await deleteUser($currentUser);
-            
-            console.log('User account deleted successfully.');
             isDeleteAccountModalOpen = false;
             await goto('/');
-
         } catch (error: any) {
             if (error.code === 'auth/requires-recent-login') {
-                console.log('Requires recent login. Triggering re-auth popup.');
                 try {
-                    // This assumes the user signed in with Google.
                     const provider = new GoogleAuthProvider();
                     await reauthenticateWithPopup($currentUser, provider);
-                    
-                    // Retry the entire process after successful re-authentication
-                    console.log('Re-authentication successful. Retrying cleanup and deletion...');
                     await cleanupUserData();
                     await deleteUser($currentUser);
-
-                    console.log('User account deleted successfully after re-auth.');
                     isDeleteAccountModalOpen = false;
                     await goto('/');
-
                 } catch (reauthError: any) {
-                    console.error('Re-authentication failed:', reauthError);
                     deleteError = 'Re-authentication failed. Please log out and log back in to delete your account.';
-                    isDeleteAccountModalOpen = false; // Close the modal to show the error
+                    isTagEditModalOpen = false; 
                 }
             } else {
-                console.error('Error deleting account:', error);
                 deleteError = 'An error occurred while deleting your account. Please try again.';
-                isDeleteAccountModalOpen = false; // Close the modal to show the error
+                isTagEditModalOpen = false; 
             }
         } finally {
             isLoading = false;
         }
     }
-
 </script>
 
 <div class="container mx-auto p-4 max-w-2xl">
@@ -393,27 +450,54 @@
             <div>
                 <Label for="user-tags" class="block mb-2 text-lg font-semibold">Your Custom Tags</Label>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Add or remove tags that you can later assign to your games.
+                    Add tags to organize your games. You can assign colors to them.
                 </p>
                 
-                <form onsubmit={(e) => { e.preventDefault(); addTag(); }} class="flex gap-2 mb-4">
-                     <Input id="new-tag" bind:value={newTagInput} placeholder="Enter a new tag" class="flex-grow" />
-                     <Button type="submit" color="alternative" class="w-12 !p-2">
-                        <PlusOutline class="w-5 h-5"/>
+                <div class="border dark:border-gray-700 rounded-lg mb-4">
+                     <Table>
+                        <TableHead>
+                            <TableHeadCell>Tag Name</TableHeadCell>
+                            <TableHeadCell>Preview</TableHeadCell>
+                            <TableHeadCell class="text-right">Actions</TableHeadCell>
+                        </TableHead>
+                        <TableBody>
+                            {#each userTags as tag (tag)}
+                                {@const tagColor = $userSettings.tagColors?.[tag] || 'indigo'}
+                                <TableBodyRow>
+                                    <TableBodyCell class="font-medium">{tag}</TableBodyCell>
+                                    <TableBodyCell>
+                                        <Badge color={tagColor as any} rounded>{tag}</Badge>
+                                    </TableBodyCell>
+                                    <TableBodyCell class="text-right">
+                                        <div class="flex items-center justify-end gap-1">
+                                            <Button size="xs" color="light" class="!p-2" onclick={() => openEditTagModal(tag)}>
+                                                <PenOutline class="w-4 h-4 text-gray-500 dark:text-gray-400"/>
+                                            </Button>
+                                            <Button size="xs" color="red" class="!p-2" onclick={() => openDeleteTagModal(tag)}>
+                                                <TrashBinOutline class="w-4 h-4"/>
+                                            </Button>
+                                        </div>
+                                    </TableBodyCell>
+                                </TableBodyRow>
+                            {/each}
+                             {#if userTags.length === 0}
+                                <TableBodyRow>
+                                    <TableBodyCell colspan="3" class="text-center text-gray-500">
+                                        No tags created yet.
+                                    </TableBodyCell>
+                                </TableBodyRow>
+                            {/if}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                <form onsubmit={(e) => { e.preventDefault(); addTag(); }} class="flex items-center gap-2">
+                     <Input id="new-tag" bind:value={newTagInput} placeholder="Enter a new tag" class="flex-grow" required />
+                     <Select items={availableColors} bind:value={newTagColor} class="w-32" />
+                     <Button type="submit" class="w-40" disabled={isLoading}>
+                         <PlusOutline class="w-5 h-5 mr-2"/> Add Tag
                      </Button>
                 </form>
-
-                <div class="flex flex-wrap gap-2 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 min-h-[4rem] content-start">
-                     {#if userTags.length > 0}
-                        {#each userTags as tag}
-                            <Badge dismissable color="indigo" rounded onclose={() => removeTag(tag)}>
-                                {tag}
-                            </Badge>
-                        {/each}
-                     {:else}
-                        <span class="text-sm text-gray-400 italic">No tags created yet.</span>
-                     {/if}
-                </div>
             </div>
 
             <!-- Categories Section -->
@@ -546,6 +630,25 @@
         </div>
     {/if}
 </div>
+
+{#if isTagEditModalOpen}
+    <TagEditModal
+        open={isTagEditModalOpen}
+        currentName={tagToEditName}
+        currentColor={tagToEditColor}
+        onsave={handleEditTag}
+        oncancel={() => isTagEditModalOpen = false}
+    />
+{/if}
+
+{#if isTagDeleteModalOpen}
+    <DeleteConfirmationModal
+        open={isTagDeleteModalOpen}
+        message={`Are you sure you want to delete the tag \"${tagToDelete}\"? This will remove it from all games.`}
+        onconfirm={confirmDeleteTag}
+        oncancel={() => isTagDeleteModalOpen = false}
+    />
+{/if}
 
 {#if isDeleteModalOpen}
     <DeleteConfirmationModal

@@ -8,7 +8,11 @@
     import { isGlobalSearch } from "$lib/stores/searchScope";
     import type { GameData } from "$lib/types";
 
-    let { status, onGamesUpdate } = $props<{ status: string; onGamesUpdate: (games: GameDataForToc[]) => void }>();
+    let { status, onGamesUpdate, filterTags = [] } = $props<{ 
+        status: string; 
+        onGamesUpdate: (games: GameDataForToc[]) => void;
+        filterTags?: string[]; // Optional prop for filtering
+    }>();
 
     interface GameDataForToc {
         id: string;
@@ -25,9 +29,14 @@
     const currentUser = $derived(user); // Подписываемся на user store
 
     $effect(() => {
-        filteredGames = games.filter(game =>
-            game.title.toLowerCase().includes($searchQuery.toLowerCase())
-        );
+        filteredGames = games.filter(game => {
+            const matchesSearch = game.title.toLowerCase().includes($searchQuery.toLowerCase());
+            
+            // Tag filtering logic (AND)
+            const matchesTags = filterTags.length === 0 || filterTags.every(tag => game.tags?.includes(tag));
+
+            return matchesSearch && matchesTags;
+        });
     });
 
     $effect(() => {

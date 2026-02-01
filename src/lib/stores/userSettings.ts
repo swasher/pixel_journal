@@ -8,6 +8,7 @@ export interface UserSettings {
     isReady: boolean; // Flag to indicate if settings have been loaded from Firestore
     categories: string[];
     tags: string[];
+    tagColors: Record<string, string>; // <-- NEW: Mapping of tag names to colors
     dataSource: DataSource;
     rawgApiKey: string;
     igdbClientId: string;
@@ -19,6 +20,7 @@ const defaultSettings: UserSettings = {
     isReady: false,
     categories: ['Backlog', 'Completed', 'Abandoned', 'Rejected'],
     tags: ['Шедевр', 'Надо перепройти'],
+    tagColors: {}, // <-- NEW: Default empty map
     dataSource: 'rawg',
     rawgApiKey: '',
     igdbClientId: '',
@@ -86,6 +88,7 @@ const createUserSettingsStore = () => {
                         isReady: true,
                         categories: data.categories && data.categories.length > 0 ? data.categories : defaultSettings.categories,
                         tags: data.tags || [],
+                        tagColors: data.tagColors || {}, // <-- NEW: Load from Firestore
                         dataSource: data.dataSource || defaultSettings.dataSource,
                         rawgApiKey: data.rawgApiKey || defaultSettings.rawgApiKey,
                         igdbClientId: data.igdbClientId || defaultSettings.igdbClientId,
