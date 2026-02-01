@@ -74,6 +74,8 @@
                 fetchedGames.push({
                     id: doc.id,
                     rawg_id: data.rawg_id,
+                    igdb_id: data.igdb_id,
+                    source: data.source,
                     title: data.title,
                     year: data.year,
                     image_url: data.image_url,

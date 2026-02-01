@@ -1,15 +1,20 @@
 <script lang="ts">
-    import { HeartOutline, HeartSolid } from "flowbite-svelte-icons";
-    import { Card, Table, TableBody, TableBodyCell, TableBodyRow, Badge, Button } from "flowbite-svelte";
+    import { HeartOutline, HeartSolid, RefreshOutline } from "flowbite-svelte-icons";
+    import { Card, Table, TableBody, TableBodyCell, TableBodyRow, Badge, Button, Spinner, Tooltip } from "flowbite-svelte";
     import { GradientButton  } from "flowbite-svelte";
-		import { Rating } from "flowbite-svelte";
+    import { Rating } from "flowbite-svelte";
     import type { GameData } from "$lib/types";
     import { userSettings } from "$lib/stores/userSettings";
+    import { db, user } from "$lib/firebase";
+    import { doc, updateDoc } from "firebase/firestore";
+    import { getGameDetails } from "$lib/apiClient";
 
     let { game, onEdit } = $props<{
         game: GameData;
         onEdit?: (game: GameData) => void;
     }>();
+
+    let isSyncing = $state(false);
 
     // Классы для стилизации таблицы для уменьшения дублирования в разметке
     const rowClass = "bg-transparent dark:bg-transparent hover:bg-transparent dark:hover:bg-transparent dark:border-gray-600";
@@ -23,6 +28,58 @@
         if (!str) return '';
         if (str.length <= maxLength) return str;
         return str.slice(0, maxLength) + '...';
+    }
+
+    async function syncGameData(e: MouseEvent) {
+        e.stopPropagation();
+        if (isSyncing || !$user) return;
+
+        // 1. Determine the ID and Source. Assume RAWG for legacy games.
+        let targetSource: 'rawg' | 'igdb' = game.source || 'rawg';
+        let targetId: number | undefined = targetSource === 'rawg' ? game.rawg_id : game.igdb_id;
+
+        if (!targetId) {
+            alert("No valid ID found for synchronization. This game might need to be re-added.");
+            return;
+        }
+
+        isSyncing = true;
+        try {
+            // Check if global source matches game source
+            if (targetSource !== $userSettings.dataSource) {
+                alert(`Please switch your data source to ${targetSource.toUpperCase()} in Settings to sync this game.`);
+                isSyncing = false;
+                return;
+            }
+
+            const details = await getGameDetails(targetId);
+            if (!details) throw new Error("No details returned from API");
+
+            const gameRef = doc(db, 'users', $user.uid, 'games', game.id);
+            const updateData: any = {
+                title: details.title || game.title,
+                year: details.year || game.year,
+                image_url: details.image_url || game.image_url,
+                genres: details.genres || [],
+                developer: details.developer || [],
+                publisher: details.publisher || [],
+                series: details.series || ''
+            };
+
+            // Migration: if the game had no source, save it now
+            if (!game.source) {
+                updateData.source = 'rawg';
+            }
+
+            await updateDoc(gameRef, updateData);
+            console.log("Game synced successfully:", game.title);
+            
+        } catch (error: any) {
+            console.error("Sync error:", error);
+            alert(`Failed to sync: ${error.message}`);
+        } finally {
+            isSyncing = false;
+        }
     }
 
 </script>
@@ -113,7 +170,19 @@
                 {/if}
             </div>
 
-            <div class="ml-auto">
+            <div class="ml-auto flex items-center gap-2">
+                {#if game.source}
+                    <Badge color="dark" class="text-[10px] uppercase opacity-50">{game.source}</Badge>
+                {/if}
+                <Button size="xs" color="light" class="!p-1.5" onclick={syncGameData} disabled={isSyncing} outline>
+                    {#if isSyncing}
+                        <Spinner size="3" />
+                    {:else}
+                        <RefreshOutline class="w-3.5 h-3.5" />
+                    {/if}
+                </Button>
+                <Tooltip>Sync details from {game.source || 'source'}</Tooltip>
+
                 <Button size="xs" href="/notes/{game.id}" onclick={(e) => e.stopPropagation()} outline>
                     Заметка
                 </Button>

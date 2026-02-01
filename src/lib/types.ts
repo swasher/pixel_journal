@@ -1,6 +1,8 @@
 export interface GameData {
     id: string;
-    rawg_id: number;
+    source?: 'rawg' | 'igdb';
+    rawg_id?: number;
+    igdb_id?: number;
     title: string;
     year: number | null;
     image_url: string;

@@ -47,9 +47,13 @@ class RawgProvider implements IGameDataProvider {
 
         // Map the RAWG data to our common GameDetailsResult format
         const gameDetails: GameDetailsResult = {
+            title: data.name,
+            year: data.released ? new Date(data.released).getFullYear() : null,
+            image_url: data.background_image,
+            genres: data.genres?.map((genre: any) => genre.name) || [],
             developer: data.developers?.map((dev: any) => dev.name) || [],
             publisher: data.publishers?.map((pub: any) => pub.name) || [],
-            series: data.game_series_count > 0 && data.stores ? data.stores[0].store.name : '' // Example of adapting a field
+            series: '' 
         };
 
         return gameDetails;

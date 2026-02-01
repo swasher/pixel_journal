@@ -493,9 +493,9 @@
 
                 <form onsubmit={(e) => { e.preventDefault(); addTag(); }} class="flex items-center gap-2">
                      <Input id="new-tag" bind:value={newTagInput} placeholder="Enter a new tag" class="flex-grow" required />
-                     <Select items={availableColors} bind:value={newTagColor} class="w-32" />
-                     <Button type="submit" class="w-40" disabled={isLoading}>
-                         <PlusOutline class="w-5 h-5 mr-2"/> Add Tag
+                     <Select items={availableColors} bind:value={newTagColor} class="w-36" />
+                     <Button type="submit" class="w-48" disabled={isLoading}>
+                         Add Tag
                      </Button>
                 </form>
             </div>

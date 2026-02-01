@@ -3,6 +3,7 @@
 	import { db, auth } from '$lib/firebase'; // Импортируем auth
 	import { addDoc, collection } from 'firebase/firestore';
 	import { allGames } from '$lib/stores/allGames';
+	import { userSettings } from '$lib/stores/userSettings';
 
 	import { searchGames, getGameDetails } from '$lib/apiClient';
 
@@ -59,14 +60,20 @@
 	}
 
 	async function handleAddGame(game: GameSearchResult) {
-        const user = auth.currentUser; // Получаем текущего пользователя напрямую
+        const user = auth.currentUser; 
+        const source = $userSettings.dataSource || 'rawg';
 
         if (!user || !user.uid) {
             alert("You must be logged in to add a game.");
             return;
         }
 
-		const existingGame = $allGames.find(g => g.rawg_id === game.id);
+		// Check duplicates in either field
+		const existingGame = $allGames.find(g => 
+			(source === 'rawg' && g.rawg_id === game.id) || 
+			(source === 'igdb' && g.igdb_id === game.id)
+		);
+
 		if (existingGame) {
 			alert(`This game is already in your '${existingGame.status}' list.`);
 			showModal = false;
@@ -81,14 +88,13 @@
             }
 		} catch (error) {
 			console.error('Error fetching game details:', error);
-            // Decide if you want to proceed without details or show an error
             alert('Could not fetch game details. Please try again.');
             return;
 		}
 
 		try {
-			await addDoc(collection(db, 'users', user.uid, 'games'), {
-				rawg_id: game.id,
+			const gameDoc: any = {
+				source: source,
 				status: status,
 				title: game.title,
 				year: game.year,
@@ -102,8 +108,16 @@
 				user_rating: 0,
 				date_added: new Date(),
 				play_time: 0
-			});
-			console.log(`Game added to ${status}:`, game.title);
+			};
+
+			if (source === 'rawg') {
+				gameDoc.rawg_id = game.id;
+			} else {
+				gameDoc.igdb_id = game.id;
+			}
+
+			await addDoc(collection(db, 'users', user.uid, 'games'), gameDoc);
+			console.log(`Game added to ${status} from ${source}:`, game.title);
 		} catch (error) {
 			console.error('Error adding document: ', error);
 		}

@@ -66,8 +66,8 @@ class IgdbProvider implements IGameDataProvider {
         const IGDB_GAMES_URL = 'https://api.igdb.com/v4/games';
 
         // Query to get detailed information about the specific game
-        // We need to get involved companies (for developers/publishers) and collection (for series)
-        const body = `fields involved_companies.company.name, involved_companies.developer, involved_companies.publisher, collection.name; where id = ${gameId};`;
+        // We need to get basic info + involved companies + franchises
+        const body = `fields name, first_release_date, cover.url, genres.name, involved_companies.company.name, involved_companies.developer, involved_companies.publisher, franchises.name; where id = ${gameId};`;
 
         try {
             const response = await fetch(IGDB_GAMES_URL, {
@@ -104,10 +104,14 @@ class IgdbProvider implements IGameDataProvider {
                 ?.filter((company: any) => company.publisher === true)
                 .map((company: any) => company.company.name) || [];
 
-            // Extract series information (using collection field in IGDB)
-            const series = game.collection?.name || '';
+            // Extract series information (exclusively using franchises field in IGDB)
+            const series = game.franchises && game.franchises.length > 0 ? game.franchises[0].name : '';
 
             const gameDetails: GameDetailsResult = {
+                title: game.name,
+                year: game.first_release_date ? new Date(game.first_release_date * 1000).getFullYear() : null,
+                image_url: game.cover?.url ? game.cover.url.replace('t_thumb', 't_cover_big') : '',
+                genres: game.genres?.map((genre: any) => genre.name) || [],
                 developer: developers,
                 publisher: publishers,
                 series: series
