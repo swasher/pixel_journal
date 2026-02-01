@@ -34,24 +34,19 @@
         e.stopPropagation();
         if (isSyncing || !$user) return;
 
-        // 1. Determine the ID and Source. Assume RAWG for legacy games.
-        let targetSource: 'rawg' | 'igdb' = game.source || 'rawg';
+        // 1. Use the CURRENT source from global settings
+        const targetSource = $userSettings.dataSource || 'rawg';
+        
+        // 2. Find the ID for this source. For legacy games without source, we still look at rawg_id.
         let targetId: number | undefined = targetSource === 'rawg' ? game.rawg_id : game.igdb_id;
 
         if (!targetId) {
-            alert("No valid ID found for synchronization. This game might need to be re-added.");
+            alert(`No ${targetSource.toUpperCase()} ID found for this game. You might need to re-link or re-add it using ${targetSource.toUpperCase()}.`);
             return;
         }
 
         isSyncing = true;
         try {
-            // Check if global source matches game source
-            if (targetSource !== $userSettings.dataSource) {
-                alert(`Please switch your data source to ${targetSource.toUpperCase()} in Settings to sync this game.`);
-                isSyncing = false;
-                return;
-            }
-
             const details = await getGameDetails(targetId);
             if (!details) throw new Error("No details returned from API");
 
@@ -63,16 +58,13 @@
                 genres: details.genres || [],
                 developer: details.developer || [],
                 publisher: details.publisher || [],
-                series: details.series || ''
+                series: details.series || '',
+                // Update the source to the one we just used
+                source: targetSource
             };
 
-            // Migration: if the game had no source, save it now
-            if (!game.source) {
-                updateData.source = 'rawg';
-            }
-
             await updateDoc(gameRef, updateData);
-            console.log("Game synced successfully:", game.title);
+            console.log(`Game synced successfully via ${targetSource}:`, game.title);
             
         } catch (error: any) {
             console.error("Sync error:", error);
@@ -172,7 +164,7 @@
 
             <div class="ml-auto flex items-center gap-2">
                 {#if game.source}
-                    <Badge color="dark" class="text-[10px] uppercase opacity-50">{game.source}</Badge>
+                    <Badge class="text-[10px] uppercase opacity-50">{game.source}</Badge>
                 {/if}
                 <Button size="xs" color="light" class="!p-1.5" onclick={syncGameData} disabled={isSyncing} outline>
                     {#if isSyncing}
@@ -181,7 +173,7 @@
                         <RefreshOutline class="w-3.5 h-3.5" />
                     {/if}
                 </Button>
-                <Tooltip>Sync details from {game.source || 'source'}</Tooltip>
+                <Tooltip>Sync details from {$userSettings.dataSource?.toUpperCase() || 'RAWG'}</Tooltip>
 
                 <Button size="xs" href="/notes/{game.id}" onclick={(e) => e.stopPropagation()} outline>
                     Заметка
