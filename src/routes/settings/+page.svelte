@@ -2,7 +2,7 @@
     import { Heading, Label, Tags, Button, Spinner, Table, TableHead, TableHeadCell, TableBody, TableBodyRow, TableBodyCell, Input, P, Select } from 'flowbite-svelte';
     import { user, db, updateGameStatuses, auth } from '$lib/firebase';
     import { userSettings } from '$lib/stores/userSettings';
-    import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc, query, collection, where, getDocs, writeBatch } from 'firebase/firestore';
+    import { doc, setDoc, arrayUnion, updateDoc, arrayRemove, deleteDoc, query, collection, where, getDocs, getDoc, writeBatch } from 'firebase/firestore';
     import { deleteUser, GoogleAuthProvider, reauthenticateWithPopup } from 'firebase/auth';
     import { goto } from '$app/navigation';
     import { PenOutline, TrashBinOutline } from 'flowbite-svelte-icons';
@@ -200,6 +200,44 @@
         }
     }
 
+    async function moveCategoryUp(categoryName: string) {
+        if (!$currentUser) return;
+
+        const userSettingsRef = doc(db, 'users', $currentUser.uid);
+        const userSettingsDoc = await getDoc(userSettingsRef);
+        const userData = userSettingsDoc.data();
+
+        const categories = [...userData.categories]; // Create a copy of the array
+        const currentIndex = categories.indexOf(categoryName);
+
+        if (currentIndex <= 0) return; // Already at the top or not found
+
+        // Swap with the previous element
+        [categories[currentIndex], categories[currentIndex - 1]] =
+        [categories[currentIndex - 1], categories[currentIndex]];
+
+        await updateDoc(userSettingsRef, { categories: categories });
+    }
+
+    async function moveCategoryDown(categoryName: string) {
+        if (!$currentUser) return;
+
+        const userSettingsRef = doc(db, 'users', $currentUser.uid);
+        const userSettingsDoc = await getDoc(userSettingsRef);
+        const userData = userSettingsDoc.data();
+
+        const categories = [...userData.categories]; // Create a copy of the array
+        const currentIndex = categories.indexOf(categoryName);
+
+        if (currentIndex === -1 || currentIndex >= categories.length - 1) return; // Not found or already at the bottom
+
+        // Swap with the next element
+        [categories[currentIndex], categories[currentIndex + 1]] =
+        [categories[currentIndex + 1], categories[currentIndex]];
+
+        await updateDoc(userSettingsRef, { categories: categories });
+    }
+
     function openDeleteAccountModal() {
         deleteError = null; // Clear previous errors on open
         isDeleteAccountModalOpen = true;
@@ -331,6 +369,28 @@
                                 <TableBodyRow>
                                     <TableBodyCell class="font-medium">{category}</TableBodyCell>
                                     <TableBodyCell class="text-right space-x-2">
+                                        <Button
+                                            size="xs"
+                                            color="alternative"
+                                            onclick={() => moveCategoryUp(category)}
+                                            disabled={$userSettings.categories.indexOf(category) === 0}
+                                        >
+                                            <svg class="w-4 h-4 me-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                                            </svg>
+                                            Up
+                                        </Button>
+                                        <Button
+                                            size="xs"
+                                            color="alternative"
+                                            onclick={() => moveCategoryDown(category)}
+                                            disabled={$userSettings.categories.indexOf(category) === $userSettings.categories.length - 1}
+                                        >
+                                            <svg class="w-4 h-4 me-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                            </svg>
+                                            Down
+                                        </Button>
                                         <Button size="xs" color="alternative" onclick={() => openRenameModal(category)}> <PenOutline class="w-4 h-4 me-1"/> Rename</Button>
                                         <Button size="xs" color="red" onclick={() => openDeleteModal(category)}> <TrashBinOutline class="w-4 h-4 me-1"/> Delete</Button>
                                     </TableBodyCell>
